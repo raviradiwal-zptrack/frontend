@@ -139,8 +139,8 @@ function renderReports(summary) {
   const list = document.getElementById('rp-list');
   const units = (summary.samples_by_product || []).reduce((n, p) => n + p.quantity, 0);
   document.getElementById('rp-summary').innerHTML = summary.total
-    ? [`${summary.total} visit${summary.total === 1 ? '' : 's'}`, `${summary.unique_doctors} doctor${summary.unique_doctors === 1 ? '' : 's'}`,
-       `${summary.unique_chemists} chemist${summary.unique_chemists === 1 ? '' : 's'}`, units ? `${units} samples given` : '']
+    ? [`${summary.total} met visit${summary.total === 1 ? '' : 's'}`, `${summary.unique_doctors} doctor${summary.unique_doctors === 1 ? '' : 's'} met`,
+       `${summary.unique_chemists} chemist${summary.unique_chemists === 1 ? '' : 's'}`, summary.unique_doctors_not_met ? `${summary.unique_doctors_not_met} not met` : '', summary.unique_doctors_assistant ? `${summary.unique_doctors_assistant} assistant only` : '', units ? `${units} samples given` : '']
         .filter(Boolean).map(t => `<span class="rp-pill">${t}</span>`).join('')
     : '';
 
@@ -221,7 +221,7 @@ function covCardHtml(r) {
     <div class="cov-top"><b>${repEsc(r.name)}</b><span class="badge ${r.rx_status === 'RX' ? 'badge-rx' : r.rx_status === 'POTENTIAL' ? 'badge-pot' : 'badge-nonrx'}">${rxLabel(r.rx_status)}</span></div>
     <div class="cov-sub">${repEsc([r.detail, r.locality].filter(Boolean).join(' · '))}${r.rating ? ' · ' + '★'.repeat(r.rating) : ''}${ownerLn}</div>
     ${r.attention ? `<div class="cov-why">⚠ ${repEsc(r.attention)}</div>` : '<div class="cov-ok">✓ On track</div>'}
-    <div class="cov-meta">Last call: ${repEsc(last)}${byOther} · ${Number(r.period_visits)} call${Number(r.period_visits) === 1 ? '' : 's'} in ${covState.period || 30} days</div>
+    <div class="cov-meta">Last call: ${repEsc(last)}${byOther} · ${Number(r.period_visits)} call${Number(r.period_visits) === 1 ? '' : 's'} (met) in ${covState.period || 30} days${(Number(r.not_met_period) || Number(r.assistant_period)) ? ` · ✖ not met ${Number(r.not_met_period) || 0} · 👥 assistant ${Number(r.assistant_period) || 0}` : ''}</div>
     ${mgrLine}
     ${gaps ? `<div class="cov-gaps">${gaps}</div>` : ''}</div>`;
 }

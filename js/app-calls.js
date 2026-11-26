@@ -442,10 +442,11 @@ function renderWall() {
     return `<div class="wall-row">${mine || isAdmin ? `<button type="button" class="wr-chk" onclick="completeWallReminder(${r.id})" title="Mark completed">✓</button>` : ''}
       <div class="wr-main"${mine || isAdmin ? ` onclick="editWallReminder(${r.id})"` : ''}><div class="wr-t">${repEsc(r.purpose)}</div><div class="wr-s${late ? ' late' : ''}">${repEsc(r.name)} · ${repEsc(r.time)} · ${late ? 'overdue since ' : ''}${repEsc(wallDay(r.date))}${team ? ' · ' + wallWho(r.mr_name) : ''}</div></div>${team && isAdmin ? wallAssign('reminder', r.id) : ''}</div>`;
   };
+  const taskAge = (c) => { const n = Math.floor((Date.now() - new Date(c).getTime()) / 86400000); return n >= 1 ? ` · <b style="color:${n >= 7 ? '#C0392B' : '#B26A00'}">pending ${n} day${n === 1 ? '' : 's'}</b>` : ''; };
   const taskRow = (t) => {
     const mine = t.mr_id === me, done = t.status === 'done';                       // an MR ticks his own tasks; the Admin can tick anybody's
     return `<div class="wall-row${done ? ' done' : ''}">${mine || isAdmin ? `<button type="button" class="wr-chk${done ? ' on' : ''}" onclick="setWallTask(${t.id}, '${done ? 'open' : 'done'}')" title="${done ? 'Mark as not done' : 'Mark completed'}">${done ? '↺' : '✓'}</button>` : ''}
-      <div class="wr-main"><div class="wr-t">${repEsc(t.title)}</div><div class="wr-s">${done ? 'Completed ' + repEsc(fmtStamp(t.completed_at)) : 'Given ' + repEsc(fmtStamp(t.created_at))}${team ? ' · ' + wallWho(t.mr_name) : ''}</div></div></div>`;
+      <div class="wr-main"><div class="wr-t">${repEsc(t.title)}</div><div class="wr-s">${done ? 'Completed ' + repEsc(fmtStamp(t.completed_at)) : 'Given ' + repEsc(fmtStamp(t.created_at)) + taskAge(t.created_at)}${team ? ' · ' + wallWho(t.mr_name) : ''}</div></div></div>`;
   };
   const taskList = d.tasks || [], taskHtml = taskList.map(taskRow).join('');
   const rem = d.reminders.overdue.map(r => remRow(r, true)).join('') + d.reminders.items.map(r => remRow(r, false)).join('');
