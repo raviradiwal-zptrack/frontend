@@ -1,11 +1,17 @@
-const CACHE_NAME = 'zivanta-shell-v39';
+const CACHE_NAME = 'zivanta-shell-v40';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/css/style.css',
   '/js/api.js',
-  '/js/app.js',
+  '/js/app-core.js',
+  '/js/app-detail.js',
+  '/js/app-capture.js',
+  '/js/app-calls.js',
+  '/js/app-home.js',
+  '/js/app-reports.js',
+  '/js/app-profile.js',
   '/js/map.js',
   '/js/keyboard.js',
   '/icons/icon-192.png',

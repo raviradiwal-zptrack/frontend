@@ -162,7 +162,7 @@ financial record-keeping, not a conversational note.
 - `index.html` — the single-page app shell (login, list, detail, edit, map views)
 - `css/style.css` — all styling, Zivanta purple/green
 - `js/api.js` — API client + JWT session handling
-- `js/app.js` — view routing, list/search/filter, detail + comment feed, forms
+- `js/app-*.js` — split into modules (core, detail, capture, calls, home, reports, profile), loaded in that order; view routing, list/search/filter, detail + comment feed, forms
 - `js/map.js` — Leaflet map, geolocation, nearby search
 - `manifest.json` / `sw.js` — PWA installability + shell caching
 

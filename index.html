@@ -50,7 +50,9 @@
       <div class="login-error" id="login-error"></div>
       <form id="login-form">
         <input type="text" id="login-username" placeholder="User ID" autocomplete="username" required>
-        <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
+        <div class="pw-wrap"><input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required><button type="button" class="pw-show" id="pw-show" aria-label="Show password" aria-pressed="false">Show</button></div>
+        <div class="login-links"><label><input type="checkbox" id="login-remember"> Remember my ID</label><button type="button" id="login-forgot" aria-expanded="false" aria-controls="login-help">Forgot password?</button></div>
+        <div class="login-help" id="login-help" role="note">Your manager or Admin resets passwords. Ask them to reset yours (Users, then Reset password, in the Admin Portal), then sign in with the new password.</div>
         <button type="submit">Sign In</button>
       </form>
     </div>
@@ -265,7 +267,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="js/api.js"></script>
 <script src="js/map.js"></script>
-<script src="js/app.js"></script>
+<script src="js/app-core.js"></script>
+<script src="js/app-detail.js"></script>
+<script src="js/app-capture.js"></script>
+<script src="js/app-calls.js"></script>
+<script src="js/app-home.js"></script>
+<script src="js/app-reports.js"></script>
+<script src="js/app-profile.js"></script>
 <script src="js/keyboard.js"></script>
 </body>
 </html>

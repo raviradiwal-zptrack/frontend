@@ -818,3 +818,32 @@ body.kb-open #view-edit .topbar, body.kb-open #view-detail .detail-header { disp
 .own-cur { font-size:14px; margin-bottom:10px; } .own-or { font-size:12px; color:var(--text-muted,#6B6480); margin:12px 0 6px; text-align:center; }
 .own-sheet select { width:100%; padding:10px; border:1px solid var(--border,#E5E0EE); border-radius:10px; font-size:14px; background:#fff; }
 .own-note { font-size:11.5px; color:var(--text-muted,#6B6480); margin-top:10px; }
+
+/* ===== v2.24.0: My month sheet, login comfort, duplicate warning ===== */
+.mm-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mm-b { width: 44px; height: 44px; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; font-size: 16px; }
+.mm-b:disabled { opacity: .35; }
+.mm-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 4px 0 8px; }
+.mm-c { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 6px; text-align: center; }
+.mm-n { font-size: 22px; font-weight: 800; color: var(--purple); line-height: 1.1; }
+.mm-l { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; } .mm-l small { font-size: 10.5px; }
+.mm-note { background: #FFF6E0; color: #7A5200; border-radius: 10px; padding: 8px 10px; font-size: 13px; margin: 6px 0; }
+.mm-fine { font-size: 12px; color: var(--text-muted); margin: 6px 0 10px; }
+.mm-h { margin: 14px 0 4px; font-size: 14px; }
+.pw-wrap { position: relative; }
+.pw-wrap input { width: 100%; padding-right: 64px; }
+.pw-show { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--purple); font-weight: 700; font-size: 13px; padding: 10px 10px; min-height: 44px; }
+.login-links { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 2px 0 4px; font-size: 13px; }
+.login-links label { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,.9); }
+.login-links button { border: 0; background: none; color: #fff; text-decoration: underline; font-size: 13px; padding: 8px 0; }
+.login-help { display: none; background: rgba(255,255,255,.14); color: #fff; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 8px; }
+.dup-box { background: #FFF6E0; border: 1px solid #E2B857; color: #5F4300; border-radius: 12px; padding: 10px 12px; margin: 10px 0; font-size: 13.5px; }
+.dup-box b { display: block; margin-bottom: 4px; } .dup-box ul { margin: 4px 0 6px; padding-left: 18px; }
+.dup-box button { margin-top: 4px; }
+/* the login screen styles every input and button inside it; these small controls must stay small, so they are more specific */
+.login-screen .pw-wrap { margin: 0 0 12px; }
+.login-screen .pw-wrap input { margin: 0; }
+.login-screen .pw-show { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: auto; margin: 0; background: none; color: var(--purple); box-shadow: none; padding: 10px 12px; min-height: 44px; font-size: 13px; font-weight: 700; border-radius: 8px; }
+.login-screen .login-links { margin: 0 0 4px; }
+.login-screen .login-links button { width: auto; margin: 0; background: none; color: #fff; box-shadow: none; padding: 10px 0; font-weight: 400; font-size: 13px; text-decoration: underline; }
+.login-screen .login-links input[type=checkbox] { width: 20px; height: 20px; margin: 0; padding: 0; flex: none; }

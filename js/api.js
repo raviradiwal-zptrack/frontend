@@ -340,7 +340,7 @@ const Api = {
   // Payments received from a chemist (any MR records; only an admin edits / deletes)
   // is this doctor / chemist already in the list? (asked before a NEW one is saved)
   findSimilar(type, f) {
-    const q = new URLSearchParams(type === 'doctor' ? { name: f.name || '', hospital_name: f.hospital_name || '', locality: f.locality || '' } : { store_name: f.store_name || '', locality: f.locality || '' });
+    const q = new URLSearchParams(type === 'doctor' ? { name: f.name || '', hospital_name: f.hospital_name || '', locality: f.locality || '', mobile_number: f.mobile_number || '' } : { store_name: f.store_name || '', locality: f.locality || '', mobile_number: f.mobile_number || '' });
     return this.request(`/${type === 'doctor' ? 'doctors' : 'chemists'}/similar?${q}`);
   },
   // Reminders, today's plan, due-for-a-call list, my targets
@@ -364,6 +364,7 @@ const Api = {
   addToPlan(items, date) { return this.request('/plan', { method: 'POST', body: JSON.stringify({ items, ...(date ? { plan_date: date } : {}) }) }); },
   removeFromPlan(id) { return this.request(`/plan/${id}`, { method: 'DELETE' }); },
   getMyTargets(month) { return this.request(`/targets/mine${month ? `?month=${month}` : ''}`); },
+  getMyMonth(month) { return this.request(`/calendar/my-month${month ? `?month=${month}` : ''}`); },   // days worked, DA days, leave and calls for ONE month of MY own
   getReportFilters() { return this.request('/reports/filters'); }, // the MR list for the Admin's Home filters
   getMySampleStock() { return this.request('/sample-stock/mine'); }, // the samples the Admin has issued to me, and what is left
   getStockEvents(chemistId) { return this.request(`/chemists/${chemistId}/stock/events`); },
