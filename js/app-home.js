@@ -208,7 +208,7 @@ async function openMonthSheet(go) {
   const has = m && m.overall_pct !== null && m.overall_pct !== undefined;
   const targets = !m ? '' : `<h4 class="mm-h">Targets</h4>` + (has
     ? `<div style="font-size:26px;font-weight:800;color:var(--purple)">${m.overall_pct}%</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">${m.on_track ? '✅ On track' : '⚠ Behind'}${isNow ? ` — about ${m.pace_pct}% of the month's working days have passed.` : '.'}</div>`
-    : `<div class="empty-note" style="padding:10px 0">No targets were set for you this month. Your Admin sets them in the portal. Here is what you have done:</div>`) + rows;
+    : `<div class="empty-note" style="padding:10px 0">No targets were set for you this month. Your Admin sets them in the ZMC. Here is what you have done:</div>`) + rows;
   setSheetBody(nav + days + targets);
 }
 
