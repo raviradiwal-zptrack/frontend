@@ -588,6 +588,8 @@ async function fillQuickResponses() {
       + (hidden > 0 ? `<button type="button" class="qr-more" data-more="1">More (${hidden}) ▾</button>` : (qrOpen && qr.items.length > qr.show_first ? '<button type="button" class="qr-more" data-more="1">Fewer ▴</button>' : ''));
   };
   draw();
+  // tapping a chip must not pop the keyboard up; if the MR is already typing, keep the keyboard open instead of closing it
+  row.onmousedown = (e) => { const ti = document.getElementById('comment-input'); if (ti && document.activeElement === ti) e.preventDefault(); };
   row.onclick = (e) => {
     const m = e.target.closest('.qr-more'); if (m) { qrOpen = !qrOpen; draw(); return; }
     const b = e.target.closest('.qr-chip'); if (!b) return;
@@ -600,7 +602,7 @@ async function fillQuickResponses() {
     else {
       const base = input.value.replace(/\s+$/, '');
       input.value = (base ? base + '\n' : '') + line + '\n';
-      input.focus(); try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { /* ignore */ }
+      try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { /* ignore */ }   // the caret waits on the next line, but the keyboard stays closed until the MR taps the box
     }
     draw();
   };
