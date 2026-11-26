@@ -611,6 +611,10 @@ async function fillQuickResponses() {
   const input = document.getElementById('comment-input');
   if (input) {
     input.addEventListener('input', draw);
+    // The phone's keyboard may open ONLY when the MR taps the box: until then the box is marked "no keyboard", so nothing else (a quick-response tap, a focus restored by the browser) can raise it.
+    input.setAttribute('inputmode', 'none');
+    input.addEventListener('pointerdown', () => { if (input.inputMode === 'none') { input.inputMode = 'text'; if (document.activeElement === input) { input.blur(); input.focus(); } } });
+    input.addEventListener('blur', () => { input.inputMode = 'none'; });
     input.addEventListener('focus', () => { if (!qrCaretPending) return; qrCaretPending = false; setTimeout(() => { try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { /* ignore */ } }, 0); });
   }
   try {                                                              // the latest settings from the Admin (kept on the phone for offline use)
