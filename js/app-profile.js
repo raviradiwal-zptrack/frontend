@@ -35,7 +35,9 @@ function renderProfile() {
       <div class="form-field"><label>E-mail</label><input type="email" id="pf-email" maxlength="120" value="${repEsc(u.email || '')}"></div>
       <div class="form-field"><label>Birthday</label><input type="date" id="pf-birthday" max="${istDate(0)}" value="${repEsc(u.birthday || '')}"></div>
       <button class="action-btn primary" id="pf-save" style="width:100%;padding:13px 0" onclick="saveProfile()">Save</button>
+      <div class="rem-box" id="rem-box"><div class="rem-title">🔔 Reminders on this phone</div><div class="rem-sub" id="rem-sub">Checking…</div><div class="rem-actions" id="rem-actions"></div></div>
     </div>`;
+  renderReminderBox();
 }
 
 function applyProfile(me) {
@@ -153,4 +155,38 @@ async function setOwner(type, id, ownerId) {
   } catch (err) {
     showToast(err.message === 'offline' ? "You're offline — couldn't change the owner." : (err.message || 'Could not change the owner'));
   }
+}
+
+
+// ===== Reminders on this phone (push notifications) =====
+const b64ToBytes = (b) => { const p = '='.repeat((4 - b.length % 4) % 4), r = atob((b + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...r].map(c => c.charCodeAt(0))); };
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+async function currentSub() { try { const reg = await navigator.serviceWorker.ready; return await reg.pushManager.getSubscription(); } catch (e) { return null; } }
+async function renderReminderBox() {
+  const sub = document.getElementById('rem-sub'), act = document.getElementById('rem-actions');
+  if (!sub) return;
+  if (!pushSupported()) { sub.textContent = /iPhone|iPad/.test(navigator.userAgent) ? 'On an iPhone, first add this app to the Home Screen (Share → Add to Home Screen), then open it from there.' : 'This browser cannot show reminders. Use Chrome on Android.'; act.innerHTML = ''; return; }
+  if (Notification.permission === 'denied') { sub.textContent = 'Notifications are blocked for this app. Allow them in the phone’s site settings, then come back.'; act.innerHTML = ''; return; }
+  const s = await currentSub();
+  if (s) { sub.textContent = 'On. You get the tasks the admin gives and your RX / Potential doctors on their call days.'; act.innerHTML = '<button type="button" class="action-btn secondary" onclick="testReminder()">Send me a test</button><button type="button" class="action-btn secondary" onclick="turnRemindersOff()">Turn off</button>'; }
+  else { sub.textContent = 'Off. Turn on to be reminded of the tasks the admin gives and of your RX / Potential doctors on their call days.'; act.innerHTML = '<button type="button" class="action-btn primary" onclick="turnRemindersOn()">Turn on reminders</button>'; }
+}
+async function turnRemindersOn() {
+  try {
+    const k = await Api.pushKey();
+    if (!k.available) return showToast(k.message || 'Reminders are not ready on the server yet');
+    if ((await Notification.requestPermission()) !== 'granted') return showToast('Reminders need your permission');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(k.key) });
+    await Api.pushSubscribe(sub.toJSON());
+    showToast('Reminders are on'); renderReminderBox();
+  } catch (err) { showToast(err.message === 'offline' ? "You're offline" : (err.message || 'Could not turn on reminders')); }
+}
+async function turnRemindersOff() {
+  try { const s = await currentSub(); if (s) { await Api.pushUnsubscribe(s.endpoint).catch(() => {}); await s.unsubscribe(); } showToast('Reminders are off'); renderReminderBox(); }
+  catch (err) { showToast('Could not turn off reminders'); }
+}
+async function testReminder() {
+  try { await Api.pushTest(); showToast('Test sent — it should appear in a few seconds'); }
+  catch (err) { showToast(err.message || 'Could not send the test'); }
 }

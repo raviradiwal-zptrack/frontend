@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zivanta-shell-v40';
+const CACHE_NAME = 'zivanta-shell-v41';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -71,4 +71,21 @@ self.addEventListener('fetch', (event) => {
       );
     })
   );
+});
+
+// ---- phone reminders (sent by the server) ----
+self.addEventListener('push', (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) { d = { body: event.data ? event.data.text() : '' }; }
+  event.waitUntil(self.registration.showNotification(d.title || 'Zivanta', {
+    body: d.body || '', tag: d.tag || 'zivanta', renotify: true, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', data: { url: d.url || '/' }
+  }));
+});
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    for (const c of list) { if ('focus' in c) return c.focus(); }
+    return self.clients.openWindow(url);
+  }));
 });

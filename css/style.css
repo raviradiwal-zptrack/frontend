@@ -847,3 +847,11 @@ body.kb-open #view-edit .topbar, body.kb-open #view-detail .detail-header { disp
 .login-screen .login-links { margin: 0 0 4px; }
 .login-screen .login-links button { width: auto; margin: 0; background: none; color: #fff; box-shadow: none; padding: 10px 0; font-weight: 400; font-size: 13px; text-decoration: underline; }
 .login-screen .login-links input[type=checkbox] { width: 20px; height: 20px; margin: 0; padding: 0; flex: none; }
+
+/* quick responses and reminders (v2.25.0) */
+.qr-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.qr-chip { border: 1px solid var(--border, #E5E0EE); background: var(--surface, #fff); color: var(--text, #1E1233); border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 600; line-height: 1.2; cursor: pointer; text-align: left; max-width: 100%; }
+.qr-chip.on { background: var(--purple, #4B1F7A); color: #fff; border-color: var(--purple, #4B1F7A); }
+.rem-box { margin-top: 18px; padding: 12px 14px; border: 1px solid var(--border, #E5E0EE); border-radius: 12px; }
+.rem-title { font-weight: 700; margin-bottom: 4px; } .rem-sub { font-size: 13px; color: var(--text-muted, #6B6480); }
+.rem-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; } .rem-actions .action-btn { width: auto; padding: 9px 14px; }

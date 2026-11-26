@@ -554,11 +554,44 @@ function renderCommentComposerBody() {
     <div id="selfie-capture-area">${selfieButtonHtml()}</div>
     <div id="selfie-status" style="font-size:12px;margin-top:6px"></div>
     <label class="field-label" for="comment-input">Comment</label>
+    <div class="qr-row" id="qr-row" aria-label="Quick responses"></div>
     <textarea id="comment-input"></textarea>
     <div class="composer-actions">
       <button class="btn-post" id="btn-post-comment" onclick="postComment()" ${needed ? 'disabled style="opacity:0.4"' : ''}>${callKind === 'manager' ? 'Post manager call' : 'Post'}</button>
     </div>
   `;
   pendingSelfie = null;
+  fillQuickResponses();
   if (callKind === 'manager') fillManagerSelect();
+}
+
+
+// ----- quick responses: one-tap phrases for the comment (the Admin sets the list in the portal: Users > Settings) -----
+const QR_KEY = 'zv_quick_responses';
+const QR_DEFAULT = ['Prescriptions on-going', 'Less patient flow', 'Ok. Let’s see', 'Need manager call', 'No requirement. Activity full', 'Stock is full', 'Standard company products only', 'Discuss activity with manager', 'Keep follow-up'];
+let qrItems = null;
+function qrSaved() { try { const a = JSON.parse(localStorage.getItem(QR_KEY) || 'null'); return Array.isArray(a) && a.length ? a : null; } catch (e) { return null; } }
+async function fillQuickResponses() {
+  const row = document.getElementById('qr-row');
+  if (!row) return;
+  if (!qrItems) qrItems = qrSaved() || QR_DEFAULT;
+  const draw = () => {
+    const input = document.getElementById('comment-input'), cur = input ? input.value.toLowerCase() : '';
+    row.innerHTML = qrItems.map((t, i) => `<button type="button" class="qr-chip${cur.includes(t.toLowerCase()) ? ' on' : ''}" data-i="${i}">${repEsc(t)}</button>`).join('');
+  };
+  draw();
+  row.onclick = (e) => {
+    const b = e.target.closest('.qr-chip'); if (!b) return;
+    const input = document.getElementById('comment-input'), t = qrItems[Number(b.dataset.i)];
+    if (!input || !t) return;
+    const v = input.value, low = v.toLowerCase(), at = low.indexOf(t.toLowerCase());
+    if (at >= 0) input.value = (v.slice(0, at) + v.slice(at + t.length)).replace(/^[\s.;,]+/, '').replace(/\s*;\s*;/g, ';').replace(/\s{2,}/g, ' ').trim();   // tap again to take it back out
+    else input.value = v.trim() ? v.replace(/[\s;]+$/, '') + '; ' + t : t;
+    draw();
+  };
+  const input = document.getElementById('comment-input'); if (input) input.addEventListener('input', draw);
+  try {                                                              // the latest list from the Admin (kept on the phone for offline use)
+    const r = await Api.getQuickResponses();
+    if (r && Array.isArray(r.items) && r.items.length) { qrItems = r.items; try { localStorage.setItem(QR_KEY, JSON.stringify(r.items)); } catch (e) { /* kept for this visit only */ } draw(); }
+  } catch (e) { /* offline: the saved list stays */ }
 }

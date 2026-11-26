@@ -364,6 +364,11 @@ const Api = {
   addToPlan(items, date) { return this.request('/plan', { method: 'POST', body: JSON.stringify({ items, ...(date ? { plan_date: date } : {}) }) }); },
   removeFromPlan(id) { return this.request(`/plan/${id}`, { method: 'DELETE' }); },
   getMyTargets(month) { return this.request(`/targets/mine${month ? `?month=${month}` : ''}`); },
+  getQuickResponses() { return this.request('/settings/quick-responses'); },
+  pushKey() { return this.request('/push/key'); },
+  pushSubscribe(sub) { return this.request('/push/subscribe', { method: 'POST', body: JSON.stringify(sub) }); },
+  pushUnsubscribe(endpoint) { return this.request('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }); },
+  pushTest() { return this.request('/push/test', { method: 'POST', body: '{}' }); },
   getMyMonth(month) { return this.request(`/calendar/my-month${month ? `?month=${month}` : ''}`); },   // days worked, DA days, leave and calls for ONE month of MY own
   getReportFilters() { return this.request('/reports/filters'); }, // the MR list for the Admin's Home filters
   getMySampleStock() { return this.request('/sample-stock/mine'); }, // the samples the Admin has issued to me, and what is left
