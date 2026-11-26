@@ -553,11 +553,12 @@ function renderCommentComposerBody() {
     <div id="mgr-pick" class="mgr-pick" style="display:${callKind === 'manager' ? 'block' : 'none'}"><label class="field-label" for="mgr-select">Manager with you</label><select id="mgr-select"><option value="">Loading…</option></select></div>
     <div class="field-label" style="margin-top:4px">${_ce && _ce.type === 'chemist' ? 'Did you meet the chemist?' : 'Did you meet the doctor?'} *</div>
     <div class="meet-row" id="meet-row">${meetChipsHtml()}</div>
-    <div id="selfie-capture-area">${selfieButtonHtml()}</div>
-    <div id="selfie-status" style="font-size:12px;margin-top:6px"></div>
-    <label class="field-label" for="comment-input">Comment</label>
+    <label class="field-label" for="comment-input" style="margin-top:14px">Comment</label>
     <div class="qr-row" id="qr-row" aria-label="Quick responses"></div>
     <textarea id="comment-input"></textarea>
+    <div class="field-label" style="margin-top:14px">Verification selfie</div>
+    <div id="selfie-capture-area">${selfieButtonHtml()}</div>
+    <div id="selfie-status" style="font-size:12px;margin-top:6px"></div>
   `;
   const pb = document.getElementById('btn-post-comment');          // the Save button lives in the form's top bar
   if (pb) { pb.disabled = needed; pb.style.opacity = needed ? '0.4' : '1'; }
@@ -615,8 +616,8 @@ async function fillQuickResponses() {
 let meetStatus = null;
 function meetChipsHtml() {
   const ce = state.currentEntity, who = ce && ce.type === 'chemist' ? ['chemist', 'staff'] : ['doctor', 'assistant'];
-  const opts = [['met', `✔ Met ${who[0]}`], ['not_met', `✖ Did not meet ${who[0]}`], ['assistant', `👥 Met ${who[1]}`]];
-  return opts.map(([k, t]) => `<button type="button" class="meet-chip ${k}${meetStatus === k ? ' on' : ''}" data-m="${k}" onclick="setMeetStatus('${k}')">${t}</button>`).join('');
+  const opts = [['met', '✔', `Met ${who[0]}`], ['not_met', '✖', `Did not meet ${who[0]}`], ['assistant', '👥', `Met ${who[1]}`]];
+  return opts.map(([k, ic, t]) => `<button type="button" class="meet-chip ${k}${meetStatus === k ? ' on' : ''}" data-m="${k}" onclick="setMeetStatus('${k}')"><span class="mc-i">${ic}</span><span class="mc-t">${t}</span></button>`).join('');
 }
 function setMeetStatus(k) {
   meetStatus = meetStatus === k ? null : k;
