@@ -437,6 +437,14 @@ function renderWall() {
   const msg = d.message ? `<div class="wall-msg">💬 ${repEsc(d.message.message)}</div>` : '';
   const bday = d.self_birthday_today ? `<div class="wall-msg">🎉 Happy birthday, ${repEsc((Api.user && Api.user.full_name || '').split(' ')[0])}!</div>` : '';
   const callRows = d.calls.map(g => g.doctors.length ? `${multi ? `<div class="wall-day">${repEsc(wallDay(g.date))}</div>` : ''}${g.doctors.map(x => `<div class="wall-row${x.done ? ' done' : ''}"><div class="wr-main" onclick="openDetail('doctor', ${x.id})"><div class="wr-t">${x.done ? '✅ ' : ''}${repEsc(x.name)} — ${repEsc(x.city || x.locality || '')}</div><div class="wr-s">MR call day ${repEsc(wallDay(g.date))}${x.from ? ` · ${repEsc(x.from)}–${repEsc(x.to)}` : ''}${x.locality && x.city ? ' · ' + repEsc(x.locality) : ''}${team ? ' · ' + wallWho(x.owner_name) : ''}</div></div>${team && isAdmin ? wallAssign('doctor', x.id) : ''}</div>`).join('')}` : '').join('');
+  const planned = d.planned || [], plannedHtml = planned.length ? (() => { let last = '', out = '';
+    planned.forEach(x => {
+      if (multi && x.date !== last) { out += `<div class="wall-day">${repEsc(wallDay(x.date))}</div>`; last = x.date; }
+      const canHand = !x.done && x.date >= d.today && (x.mr_id === me || wallStaff());
+      const tag = x.handed_from_name ? ` · handed over by ${repEsc(x.handed_from_name)}` : (x.assigned_by_name ? ` · planned by ${repEsc(x.assigned_by_name)}` : '');
+      out += `<div class="wall-row${x.done ? ' done' : ''}"><div class="wr-main" onclick="openDetail('${x.entity_type}', ${x.entity_id})"><div class="wr-t">${x.done ? '✅ ' : ''}${repEsc(x.name)}${x.locality ? ' — ' + repEsc(x.locality) : ''}</div><div class="wr-s">Planned call ${repEsc(wallDay(x.date))}${team || x.mr_id !== me ? ' · ' + wallWho(x.mr_name) : ''}${tag}</div></div>${canHand ? `<button type="button" class="link-btn" onclick="wallPlanHand(${x.id})">Hand over</button>` : ''}</div>`;
+    });
+    return out; })() : '';
   const remRow = (r, late) => {
     const mine = r.mr_id === undefined || r.mr_id === me;                          // a reminder is ticked / edited by the MR who holds it (and by the Admin)
     return `<div class="wall-row">${mine || isAdmin ? `<button type="button" class="wr-chk" onclick="completeWallReminder(${r.id})" title="Mark completed">✓</button>` : ''}
@@ -458,7 +466,7 @@ function renderWall() {
   }).join('');
   const todayOcc = d.occasions.filter(o => o.days_until === 0), laterOcc = d.occasions.filter(o => o.days_until > 0);
   const occHtml = multi ? occ(d.occasions) : `${occ(todayOcc)}${laterOcc.length ? `<div class="wall-day">Later this week</div>${occ(laterOcc)}` : ''}`;
-  const empty = !callRows && !rem && !taskHtml && !d.occasions.length;
+  const empty = !callRows && !plannedHtml && !rem && !taskHtml && !d.occasions.length;
   const rangeLabel = (WALL_RANGES.find(x => x[0] === d.range) || WALL_RANGES[0])[1].toLowerCase();
   const filter = team && (d.team || []).length ? `<select class="wall-team" onchange="setWallMr(this.value)" aria-label="Team member"><option value="">All team members</option>${d.team.map(u => `<option value="${u.id}"${String(d.mr_id) === String(u.id) ? ' selected' : ''}>${repEsc(u.full_name)}</option>`).join('')}</select>` : '';
   root.innerHTML = `<div class="wall">${msg}${bday}
@@ -466,10 +474,18 @@ function renderWall() {
     <div class="wall-range">${WALL_RANGES.map(([k, label]) => `<button type="button" class="${d.range === k ? 'on' : ''}" onclick="setWallRange('${k}')">${repEsc(label)}</button>`).join('')}</div>
     ${wall.error ? `<div class="wall-empty">${repEsc(wall.error)} — showing what was loaded earlier</div>` : ''}
     ${taskHtml ? `<h4>📝 To-do <span class="wall-count">${taskList.filter(t => t.status === 'open').length} open</span></h4>${taskHtml}` : ''}
+    ${plannedHtml ? `<h4>📌 Planned calls</h4>${plannedHtml}` : ''}
     ${callRows ? `<h4>📅 Scheduled calls</h4>${callRows}` : ''}
     ${rem ? `<h4>⏰ Reminders</h4>${rem}` : ''}
     ${occHtml ? `<h4>🎂 Birthdays &amp; anniversaries</h4>${occHtml}` : ''}
     ${empty ? `<div class="wall-empty">Nothing scheduled ${d.range === 'today' ? 'today' : rangeLabel === 'today & tomorrow' ? 'for today and tomorrow' : rangeLabel === 'this week' ? 'for the rest of this week' : 'for the rest of this month'}${team ? ' for the team' : ''}. Enjoy a calm day 🙂</div>` : ''}</div>`;
+}
+
+// hand a planned call (shown on the Wall) to another MR
+function wallPlanHand(id) {
+  const x = ((wall.data && wall.data.planned) || []).find(r => r.id === id); if (!x) return;
+  planState.date = x.date; planState.who = wallStaff() ? 'all' : 'me'; planState.rows = [{ ...x, plan_date: x.date, user_id: x.mr_id }];
+  openSheet('Hand over', ''); planHandOver(id);
 }
 
 // ----- the Admin gives an item to another MR -----

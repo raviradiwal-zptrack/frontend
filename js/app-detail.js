@@ -175,6 +175,7 @@ function renderDetail(e, type) {
     <div class="detail-actions">
       ${mapUrl ? `<a class="action-btn primary" href="${mapUrl}" target="_blank">📍 Navigate</a>` : ''}
       <button class="action-btn secondary" onclick="openEdit('${type}', ${e.id})">✏️ Edit</button>
+      <button class="action-btn secondary" onclick="openPlanCallSheet('${type}', ${e.id})">📅 Plan a call</button>
     </div>
     ${!e.flagged_invalid ? `
       <div style="padding:0 16px 12px">

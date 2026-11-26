@@ -93,22 +93,100 @@ function renderHomeCards() {
     <button type="button" class="hc-tile" onclick="openMonthSheet()"><div class="hc-n">${month && month.overall_pct !== null && month.overall_pct !== undefined ? month.overall_pct + '%' : '—'}</div><div class="hc-l">🎯 My month</div></button>`;
 }
 
-// ----- today's plan -----
-async function openPlanSheet() {
-  openSheet("Today's plan", '<div class="loading-row">Loading…</div>');
-  try { renderPlanSheet(await Api.getPlan()); } catch (e) { setSheetBody(`<div class="empty-note">Couldn't load the plan — ${repEsc(e.message)}</div>`); }
+// ----- the call plan: plan calls for any day, hand a call to another MR, move it, (Admin) plan for anybody -----
+const planState = { date: null, who: 'me', rows: [], planned: 0, done: 0 };       // who: 'me' | 'all' | a user id (the last two for the Admin / Super User)
+const planStaff = () => !!Api.user && ['admin', 'super'].includes(Api.user.role);
+const planDayName = (ymd) => new Date(ymd + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+async function openPlanSheet(date) {
+  planState.date = date || istDate(0); if (!date) planState.who = 'me';
+  openSheet('Call plan', '<div class="loading-row">Loading…</div>');
+  await loadPlanSheet();
 }
-function renderPlanSheet(p) {
-  homeCards.plan = p; renderHomeCards();
+async function loadPlanSheet() {
+  try {
+    const who = planState.who === 'me' ? '' : planState.who;
+    const [p, t] = await Promise.all([Api.getPlanRange(planState.date, planState.date, who), planStaff() ? loadTeam() : Promise.resolve(null)]);
+    Object.assign(planState, { rows: p.rows, planned: p.planned, done: p.done, team: t });
+    if (planState.date === istDate(0) && planState.who === 'me') { homeCards.plan = p; renderHomeCards(); }
+    renderPlanSheet();
+  } catch (e) { setSheetBody(`<div class="empty-note">Couldn't load the plan — ${repEsc(e.message)}</div>`); }
+}
+function renderPlanSheet() {
+  const p = planState, today = istDate(0), me = Api.user ? Api.user.id : null, past = p.date < today;
+  const others = p.who !== 'me';
+  const who = planStaff() && p.team ? `<select onchange="planSetWho(this.value)" style="width:100%;margin-bottom:8px;padding:8px;border:1px solid var(--border);border-radius:10px"><option value="me"${p.who === 'me' ? ' selected' : ''}>My plan</option><option value="all"${p.who === 'all' ? ' selected' : ''}>Everyone</option>${(p.team.mrs || []).filter(u => u.id !== me).map(u => `<option value="${u.id}"${String(p.who) === String(u.id) ? ' selected' : ''}>${repEsc(u.full_name)}</option>`).join('')}</select>` : '';
+  const row = (r) => {
+    const mine = r.user_id === me, canAct = !r.done && !past && (mine || planStaff()), miss = past && !r.done;
+    const tag = r.handed_from_name ? ` · handed over by ${repEsc(r.handed_from_name)}` : (r.assigned_by_name ? ` · planned by ${repEsc(r.assigned_by_name)}` : '');
+    return `<div class="sh-row" style="flex-wrap:wrap"><div class="sh-main"><div class="sh-name">${r.done ? '✅ ' : miss ? '❌ ' : '⬜ '}<a href="#" onclick="planOpen('${r.entity_type}', ${r.entity_id}); return false">${repEsc(r.name)}</a></div>
+      <div class="sh-sub">${repEsc(r.locality || '')}${others || !mine ? ` · 👤 ${repEsc(r.mr_name)}` : ''}${r.done ? ' · done' : miss ? ' · not called' : ''}${tag}</div></div>
+      ${canAct ? `<div style="display:flex;gap:10px"><button type="button" class="link-btn" onclick="planHandOver(${r.id})">Hand over</button><button type="button" class="link-btn" onclick="planMove(${r.id})">Move</button><button type="button" class="link-btn danger" onclick="planRemove(${r.id})">Remove</button></div>` : ''}</div>`;
+  };
   setSheetBody(`
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px"><b>${p.done}</b> of <b>${p.planned}</b> done today. A call counts as done when you log a comment or samples for it.</div>
+    ${who}
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+      <button type="button" class="action-btn secondary" style="padding:6px 12px" onclick="planShift(-1)">‹</button>
+      <input type="date" value="${p.date}" onchange="planSetDate(this.value)" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:10px">
+      <button type="button" class="action-btn secondary" style="padding:6px 12px" onclick="planShift(1)">›</button>
+      <button type="button" class="link-btn" onclick="planSetDate('${today}')">Today</button>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px"><b>${planDayName(p.date)}</b> — <b>${p.done}</b> of <b>${p.planned}</b> called. A call counts as done when you log a met call.</div>
     <button type="button" class="action-btn secondary" style="width:100%;margin-bottom:6px" onclick="openDueSheet()">+ Add from the "due for a call" list</button>
-    ${p.rows.length ? p.rows.map(r => `<div class="sh-row"><div class="sh-main"><div class="sh-name">${r.done ? '✅ ' : '⬜ '}<a href="#" onclick="planOpen('${r.entity_type}', ${r.entity_id}); return false">${repEsc(r.name)}</a></div><div class="sh-sub">${repEsc(r.locality || '')}${r.done ? ' · done' : ''}</div></div>${r.done ? '' : `<button type="button" class="link-btn danger" onclick="planRemove(${r.id})">Remove</button>`}</div>`).join('') : `<div class="empty-note" style="padding:14px 0">Nothing planned for today yet.</div>`}`);
+    ${p.rows.length ? p.rows.map(row).join('') : `<div class="empty-note" style="padding:14px 0">Nothing planned for this day yet. To plan a call, open a doctor or chemist and tap "Plan a call".</div>`}`);
 }
+function planSetDate(d) { if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return; planState.date = d; loadPlanSheet(); }
+function planShift(n) { const d = new Date(planState.date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); planSetDate(d.toISOString().slice(0, 10)); }
+function planSetWho(v) { planState.who = v; loadPlanSheet(); }
 function planOpen(type, id) { closeSheet(); openDetail(type, id); }
-async function planRemove(id) { try { await Api.removeFromPlan(id); renderPlanSheet(await Api.getPlan()); } catch (e) { showToast(e.message || 'Could not remove it'); } }
+async function planRemove(id) { try { await Api.removeFromPlan(id); await loadPlanSheet(); loadWallIfOpen(); } catch (e) { showToast(e.message || 'Could not remove it'); } }
+function loadWallIfOpen() { try { if (typeof loadWall === 'function' && document.getElementById('wall-root')) loadWall(); } catch (e) { /* ignore */ } }
+async function planHandOver(id) {
+  const r = planState.rows.find(x => x.id === id); if (!r) return;
+  const t = await loadTeam(), list = (t.mrs || []).filter(u => u.id !== r.user_id);
+  setSheetBody(`<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px"><b>${repEsc(r.name)}</b> · ${repEsc(planDayName(r.plan_date))}<br>Who should make this call? They get a notification.</div>
+    ${list.map(u => `<div class="sh-row"><div class="sh-main"><div class="sh-name">${repEsc(u.full_name)}</div></div><button type="button" class="action-btn secondary" style="padding:6px 12px" onclick="planDoHand(${id}, ${u.id})">Hand over</button></div>`).join('') || '<div class="empty-note">No other MR is available.</div>'}
+    <button type="button" class="link-btn" style="margin-top:8px" onclick="renderPlanSheet()">Back</button>`);
+}
+async function planDoHand(id, uid) { try { await Api.changePlan(id, { user_id: uid }); showToast('Handed over'); await loadPlanSheet(); loadHomeCards(); loadWallIfOpen(); } catch (e) { showToast(e.message || 'Could not hand it over'); } }
+function planMove(id) {
+  const r = planState.rows.find(x => x.id === id); if (!r) return;
+  setSheetBody(`<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px"><b>${repEsc(r.name)}</b> is planned for ${repEsc(planDayName(r.plan_date))}. Move it to:</div>
+    <input type="date" id="plan-move-date" min="${istDate(0)}" value="${r.plan_date}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px">
+    <button type="button" class="action-btn primary" style="width:100%" onclick="planDoMove(${id})">Move</button>
+    <button type="button" class="link-btn" style="margin-top:8px" onclick="renderPlanSheet()">Back</button>`);
+}
+async function planDoMove(id) {
+  const d = (document.getElementById('plan-move-date') || {}).value; if (!d) return showToast('Choose a date');
+  try { await Api.changePlan(id, { plan_date: d }); showToast('Moved to ' + planDayName(d)); await loadPlanSheet(); loadHomeCards(); loadWallIfOpen(); } catch (e) { showToast(e.message || 'Could not move it'); }
+}
+// "Plan a call" on a doctor / chemist: pick the day, optionally repeat weekly (to plan the coming weeks), and (Admin / Super User) whose plan
+let planCall = null;
+async function openPlanCallSheet(type, id, name) {
+  name = name || (state.currentLabel || '');
+  planCall = { type, id, name };
+  const staff = planStaff(), t = staff ? await loadTeam() : null, me = Api.user ? Api.user.id : null;
+  openSheet('Plan a call', `<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px"><b>${repEsc(name)}</b></div>
+    ${staff && t ? `<label style="font-size:12px;color:var(--text-muted)">Plan it for</label><select id="pc-who" style="width:100%;margin:2px 0 8px;padding:9px;border:1px solid var(--border);border-radius:10px"><option value="${me}">Me</option>${(t.mrs || []).filter(u => u.id !== me).map(u => `<option value="${u.id}">${repEsc(u.full_name)}</option>`).join('')}</select>` : ''}
+    <label style="font-size:12px;color:var(--text-muted)">Day</label>
+    <input type="date" id="pc-date" min="${istDate(0)}" value="${istDate(1)}" style="width:100%;margin:2px 0 8px;padding:9px;border:1px solid var(--border);border-radius:10px">
+    <label style="font-size:12px;color:var(--text-muted)">Repeat</label>
+    <select id="pc-rep" style="width:100%;margin:2px 0 10px;padding:9px;border:1px solid var(--border);border-radius:10px"><option value="1">Just this day</option><option value="2">Every week for 2 weeks</option><option value="3">Every week for 3 weeks</option><option value="4">Every week for 4 weeks</option></select>
+    <button type="button" class="action-btn primary" style="width:100%" onclick="doPlanCall()">Save to the plan</button>`);
+}
+async function doPlanCall() {
+  const c = planCall; if (!c) return;
+  const d = document.getElementById('pc-date').value, n = Number(document.getElementById('pc-rep').value) || 1, whoEl = document.getElementById('pc-who');
+  if (!d) return showToast('Choose a day');
+  const dates = Array.from({ length: n }, (_, i) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + 7 * i); return x.toISOString().slice(0, 10); });
+  const uid = whoEl && Number(whoEl.value) !== (Api.user && Api.user.id) ? Number(whoEl.value) : null;
+  try {
+    const r = await Api.addToPlan([{ entity_type: c.type, entity_id: c.id }], null, { dates, ...(uid ? { user_id: uid } : {}) });
+    closeSheet(); showToast(r.added ? `Planned: ${r.added} call${r.added === 1 ? '' : 's'}${r.already_planned ? ` (${r.already_planned} already planned)` : ''}` : 'Already in the plan for that day'); loadHomeCards(); loadWallIfOpen();
+  } catch (e) { showToast(e.message || 'Could not save the plan'); }
+}
 
 // ----- the "due for a call" list -----
+const dueDate = () => (planState.date && planState.who === 'me' && planState.date >= istDate(0) ? planState.date : null);   // when opened from the plan sheet, calls go to the day being looked at
 let dueState = { type: 'doctor', near: false, q: '', pos: null, rows: [] };
 function openDueSheet(type) {
   if (type) dueState.type = type;
@@ -132,7 +210,7 @@ function renderDueSheet() {
   setSheetBody(`
     <div class="sh-tabs">${tab('doctor', 'Doctors')}${tab('chemist', 'Chemists')}<button type="button" class="${d.near ? 'on' : ''}" onclick="dueToggleNear()">📍 Nearest first</button></div>
     <input type="text" id="due-q" placeholder="Search a name…" value="${repEsc(d.q)}" oninput="dueSearch(this.value)" style="width:100%;margin-bottom:6px;padding:9px 10px;border:1px solid var(--border);border-radius:10px">
-    ${d.rows.length ? `<button type="button" class="link-btn" onclick="dueAddTop()">Add the first 10 to today's plan</button>` : ''}
+    ${d.rows.length ? `<button type="button" class="link-btn" onclick="dueAddTop()">Add the first 10 to the plan</button>` : ''}
     ${rows || `<div class="empty-note" style="padding:14px 0">${d.error ? repEsc(d.error) : 'Nobody is due — everyone has had a call recently.'}</div>`}`);
 }
 function dueSetType(t) { dueState.type = t; loadDue(); }
@@ -146,12 +224,12 @@ async function dueToggleNear() {
   dueState.pos = { lat: loc.lat, lng: loc.lng }; dueState.near = true; loadDue();
 }
 async function dueAdd(type, id) {
-  try { await Api.addToPlan([{ entity_type: type, entity_id: id }]); showToast('Added to today\'s plan'); loadDue(); loadHomeCards(); } catch (e) { showToast(e.message || 'Could not add it'); }
+  try { await Api.addToPlan([{ entity_type: type, entity_id: id }], dueDate()); showToast('Added to the plan for ' + planDayName(dueDate() || istDate(0))); loadDue(); loadHomeCards(); } catch (e) { showToast(e.message || 'Could not add it'); }
 }
 async function dueAddTop() {
   const items = dueState.rows.filter(r => !r.in_plan).slice(0, 10).map(r => ({ entity_type: dueState.type, entity_id: r.id }));
   if (!items.length) return showToast('They are all in your plan already');
-  try { const r = await Api.addToPlan(items); showToast(`Added ${r.added} to today's plan`); loadDue(); loadHomeCards(); } catch (e) { showToast(e.message || 'Could not add them'); }
+  try { const r = await Api.addToPlan(items, dueDate()); showToast(`Added ${r.added} to the plan for ${planDayName(dueDate() || istDate(0))}`); loadDue(); loadHomeCards(); } catch (e) { showToast(e.message || 'Could not add them'); }
 }
 
 // ----- reminders -----

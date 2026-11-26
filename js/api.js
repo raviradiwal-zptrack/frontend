@@ -360,8 +360,11 @@ const Api = {
   addReminder(payload) { return this.request('/wall/reminders', { method: 'POST', body: JSON.stringify(payload) }); },
   updateReminder(id, payload) { return this.request(`/wall/reminders/${id}`, { method: 'PUT', body: JSON.stringify(payload) }); },
   getPlan(date) { return this.request(`/plan${date ? `?date=${date}` : ''}`); },
+  getPlanRange(from, to, who) { const q = new URLSearchParams({ from, to }); if (who === 'all') q.set('all', '1'); else if (who) q.set('user_id', who); return this.request(`/plan?${q}`); },
   getDue(params) { return this.request(`/plan/due?${new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null))}`); },
-  addToPlan(items, date) { return this.request('/plan', { method: 'POST', body: JSON.stringify({ items, ...(date ? { plan_date: date } : {}) }) }); },
+  // opts: { dates: ['2026-12-01', ...] , user_id }   (an Admin / Super User can plan for any MR)
+  addToPlan(items, date, opts = {}) { return this.request('/plan', { method: 'POST', body: JSON.stringify({ items, ...(date ? { plan_date: date } : {}), ...(opts.dates ? { dates: opts.dates } : {}), ...(opts.user_id ? { user_id: opts.user_id } : {}) }) }); },
+  changePlan(id, payload) { return this.request(`/plan/${id}`, { method: 'PUT', body: JSON.stringify(payload) }); },
   removeFromPlan(id) { return this.request(`/plan/${id}`, { method: 'DELETE' }); },
   getMyTargets(month) { return this.request(`/targets/mine${month ? `?month=${month}` : ''}`); },
   getQuickResponses() { return this.request('/settings/quick-responses'); },
