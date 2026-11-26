@@ -17,8 +17,7 @@ function setCallKind(k) {
   callKind = k === 'manager' ? 'manager' : 'visit';
   document.querySelectorAll('#call-kind .ck').forEach(b => b.classList.toggle('active', b.dataset.k === callKind));
   const pick = document.getElementById('mgr-pick'); if (pick) pick.style.display = callKind === 'manager' ? 'block' : 'none';
-  const btn = document.getElementById('btn-post-comment'); if (btn && !btn.disabled) btn.textContent = callKind === 'manager' ? 'Post manager call' : 'Post';
-  else if (btn) btn.textContent = callKind === 'manager' ? 'Post manager call' : 'Post';
+  const ttl = document.querySelector('#call-sheet .cs-title'); if (ttl && ttl.firstChild) ttl.firstChild.nodeValue = callKind === 'manager' ? 'Add manager call' : 'Add call';
   if (callKind === 'manager') fillManagerSelect();
 }
 function managerFields() {
@@ -176,7 +175,7 @@ async function postComment() {
       if (pendingSelfie) URL.revokeObjectURL(pendingSelfie.previewUrl);
       pendingSelfie = null;
       retakeSelfie();
-      btn.textContent = 'Save call'; btn.disabled = false;
+      btn.textContent = 'Save'; btn.disabled = false;
       closeCallSheet();
       return;
     }

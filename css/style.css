@@ -858,8 +858,6 @@ body.kb-open #view-edit .topbar, body.kb-open #view-detail .detail-header { disp
 .qr-more { border: 1px dashed var(--purple, #4B1F7A); background: transparent; color: var(--purple, #4B1F7A); border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
 
 /* Add call: a button on the doctor / chemist screen and a full-screen form (v2.26.0) */
-.addcall-bar { padding: 0 16px 10px; }
-.addcall-btn { width: 100%; border: none; border-radius: 12px; padding: 14px 0; font-size: 16px; font-weight: 800; background: var(--purple, #4B1F7A); color: #fff; cursor: pointer; }
 .call-sheet { position: fixed; inset: 0; z-index: 900; background: var(--bg, #F3F1F8); display: flex; flex-direction: column; }
 .cs-head { display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px; background: var(--purple, #4B1F7A); color: #fff; }
 .cs-x { width: 40px; height: 40px; border: none; border-radius: 10px; background: rgba(255,255,255,0.18); color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0; }
@@ -873,3 +871,11 @@ body.cs-open { overflow: hidden; }
 .meet-chip.met.on { background: #3FA34D; border-color: #3FA34D; color: #fff; } .meet-chip.not_met.on { background: #C0392B; border-color: #C0392B; color: #fff; } .meet-chip.assistant.on { background: #C98A1E; border-color: #C98A1E; color: #fff; }
 .meet-badge { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: 6px; background: #E3F2EC; color: #0f6b4f; } .meet-badge.not_met { background: #FDECEA; color: #B3382C; } .meet-badge.assistant { background: #FFF0CC; color: #8A5A00; }
 .cs-body textarea { border: 1px solid var(--border, #E5E0EE); border-radius: 10px; padding: 10px; background: var(--surface, #fff); width: 100%; box-sizing: border-box; font: inherit; }
+
+/* one floating Add call button (bottom-left, clear of the host's badge at the right); the Save button sits in the form's top bar */
+.addcall-fab { position: fixed; left: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 64px); z-index: 50; border: none; border-radius: 999px; padding: 15px 22px; font-size: 16px; font-weight: 800; background: var(--purple, #4B1F7A); color: #fff; box-shadow: 0 6px 18px rgba(30,18,51,0.35); cursor: pointer; }
+.fab-space { height: 110px; }
+body.cs-open .addcall-fab { display: none; }
+.cs-save { margin-left: auto; border: none; border-radius: 10px; padding: 0 18px; height: 40px; background: #3FA34D; color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
+.cs-save:disabled { background: rgba(255,255,255,0.25); color: rgba(255,255,255,0.8); }
+.cs-body { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 110px); }

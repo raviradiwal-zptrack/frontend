@@ -171,7 +171,6 @@ function renderDetail(e, type) {
         <p style="font-size:11px;color:var(--text-muted);margin-top:4px">An admin needs to review this before it's removed — it's still visible until then.</p>
       </div>
     ` : ''}
-    <div class="addcall-bar"><button type="button" class="addcall-btn" onclick="openCallSheet()">➕ Add call</button></div>
     <div class="detail-actions">
       ${mapUrl ? `<a class="action-btn primary" href="${mapUrl}" target="_blank">📍 Navigate</a>` : ''}
       <button class="action-btn secondary" onclick="openEdit('${type}', ${e.id})">✏️ Edit</button>
@@ -185,7 +184,6 @@ function renderDetail(e, type) {
     ${reminderBlockHtml()}
     ${accordions}
     ${accordion('acc-comments', 'Comments', `
-      <div class="comment-composer"><button type="button" class="action-btn primary" style="width:100%" onclick="openCallSheet()">➕ Add call</button></div>
       <div class="tools-row" style="padding:0 0 8px">
         <input type="text" id="feed-q" placeholder="Filter comments…" oninput="setFeedFilter('q', this.value)">
         <select id="feed-show" onchange="setFeedFilter('show', this.value)" aria-label="Show">
@@ -197,6 +195,8 @@ function renderDetail(e, type) {
       <div id="feed-list"><div class="loading-row">Loading…</div></div>
       <button type="button" class="more-btn" id="feed-more" style="display:none" onclick="showMoreFeed()">More</button>
     `, true)}
+    <div class="fab-space"></div>
+    <button type="button" class="addcall-fab" onclick="openCallSheet()">➕ Add call</button>
   `;
   pendingSelfie = null;
   pendingGiftFile = null;

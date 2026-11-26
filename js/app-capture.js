@@ -218,7 +218,7 @@ function retakeSelfie() {
   area.innerHTML = selfieButtonHtml();
   document.getElementById('selfie-status').textContent = '';
   const postBtn = document.getElementById('btn-post-comment');
-  postBtn.textContent = 'Post';
+  postBtn.textContent = 'Save';
   postBtn.disabled = selfieRequired();            // a person whose selfie is switched off can post without one
   postBtn.style.opacity = selfieRequired() ? '0.4' : '1';
 }
@@ -541,7 +541,7 @@ function renderCommentComposerBody() {
   const box = document.getElementById('comment-composer-body');
   if (!box) return;
   const blocked = callBlocker();
-  if (blocked) { box.innerHTML = callBlockerHtml(blocked); pendingSelfie = null; return; }
+  if (blocked) { box.innerHTML = callBlockerHtml(blocked); pendingSelfie = null; const pb0 = document.getElementById('btn-post-comment'); if (pb0) { pb0.disabled = true; pb0.style.opacity = '0.4'; } return; }
   const needed = selfieRequired();
   const _ce = state.currentEntity, canMgr = !!(_ce && _ce.type === 'doctor' && _ce.rec && ['RX', 'POTENTIAL'].includes(_ce.rec.rx_status));   // manager calls are for RX and Potential doctors only
   if (!canMgr) callKind = 'visit';
@@ -558,10 +558,9 @@ function renderCommentComposerBody() {
     <label class="field-label" for="comment-input">Comment</label>
     <div class="qr-row" id="qr-row" aria-label="Quick responses"></div>
     <textarea id="comment-input"></textarea>
-    <div class="composer-actions">
-      <button class="btn-post" id="btn-post-comment" onclick="postComment()" ${needed ? 'disabled style="opacity:0.4"' : ''}>${callKind === 'manager' ? 'Save manager call' : 'Save call'}</button>
-    </div>
   `;
+  const pb = document.getElementById('btn-post-comment');          // the Save button lives in the form's top bar
+  if (pb) { pb.disabled = needed; pb.style.opacity = needed ? '0.4' : '1'; }
   pendingSelfie = null;
   fillQuickResponses();
   if (callKind === 'manager') fillManagerSelect();
@@ -624,7 +623,7 @@ function openCallSheet() {
   if (!(state.currentEntity.type === 'doctor' && state.currentEntity.rec && ['RX', 'POTENTIAL'].includes(state.currentEntity.rec.rx_status))) callKind = 'visit';
   const el = document.createElement('div');
   el.id = 'call-sheet'; el.className = 'call-sheet';
-  el.innerHTML = `<div class="cs-head"><button type="button" class="cs-x" aria-label="Close" onclick="closeCallSheet()">✕</button><div class="cs-title">Add call<small>${repEsc(state.currentLabel || '')}</small></div></div>
+  el.innerHTML = `<div class="cs-head"><button type="button" class="cs-x" aria-label="Close" onclick="closeCallSheet()">✕</button><div class="cs-title">Add call<small>${repEsc(state.currentLabel || '')}</small></div><button type="button" class="cs-save" id="btn-post-comment" onclick="postComment()" disabled style="opacity:0.4">Save</button></div>
     <div class="cs-body"><div class="comment-composer"><div id="comment-composer-body"></div></div></div>`;
   document.body.appendChild(el);
   document.body.classList.add('cs-open');
