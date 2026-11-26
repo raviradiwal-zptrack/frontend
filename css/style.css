@@ -598,6 +598,14 @@ a { color: inherit; }
 .mood-btn small { font-size: 10px; color: var(--text-muted); font-weight: 600; }
 .mood-btn.on { border-color: var(--purple); background: var(--purple-tint); }
 .mood-btn.on small { color: var(--purple); }
+.ck-card { display: flex; flex-direction: column; gap: 6px; }
+.ck-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface); }
+.ck-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.ck-seg { display: flex; gap: 6px; }
+.ck-btn { min-width: 52px; padding: 5px 10px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 12.5px; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+.ck-btn.on { border-color: var(--purple); background: var(--purple-tint); color: var(--purple); }
+.ck-btn.no.on { border-color: #C0392B; background: #FDECEA; color: #C0392B; }
+.ck-note { font-size: 11px; line-height: 1.35; color: var(--text-muted); }
 .mood-chip { font-size: 17px; margin-left: 4px; }
 .profile-body { padding: 18px 16px 30px; }
 .profile-photo { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 18px; }

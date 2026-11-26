@@ -340,6 +340,20 @@ const moodRowHtml = () => `
     <div class="mood-faces">${MOODS.map(m => `<button type="button" class="mood-btn" data-mood="${m.v}" onclick="pickMood(${m.v})"><span>${m.face}</span><small>${m.label}</small></button>`).join('')}</div>
     <input type="text" id="mood-note" class="day-note" maxlength="300" placeholder="Message (optional)">
   </div>`;
+// Field-work checklist: every item must be answered before the day can start; answers are stored and reviewed by the admin.
+const DAY_CHECKS = [['helmet', 'Helmet', '🪖'], ['icard', 'i-Card', '🪪'], ['brochure', 'Brochure', '📄'], ['samples', 'Samples', '💊']];
+let dayCheck = {};
+function pickCheck(k, v) {
+  dayCheck[k] = v;
+  document.querySelectorAll(`.ck-row[data-k="${k}"] .ck-btn`).forEach(b => b.classList.toggle('on', (b.dataset.v === '1') === v));
+}
+const checklistHtml = () => `
+  <div class="ck-card" id="day-checklist" style="display:none">
+    <div class="mood-label">Field work checklist <span style="color:#C0392B">*</span></div>
+    ${DAY_CHECKS.map(([k, l, ic]) => `<div class="ck-row" data-k="${k}"><span class="ck-name">${ic} ${l}</span>
+      <span class="ck-seg"><button type="button" class="ck-btn" data-v="1" onclick="pickCheck('${k}', true)">Yes</button><button type="button" class="ck-btn no" data-v="0" onclick="pickCheck('${k}', false)">No</button></span></div>`).join('')}
+    <div class="ck-note">Please answer honestly. Incorrect reporting may be treated as a violation and can lead to cancellation of the day's allowance.</div>
+  </div>`;
 const dayTypeOptions = (selected, withBlank) =>
   (withBlank ? `<option value="">Select today's work…</option>` : '') +
   Object.entries(DAY_TYPES).map(([k, v]) => `<option value="${k}"${k === selected ? ' selected' : ''}>${v}</option>`).join('');
@@ -365,6 +379,7 @@ function renderWorkdayPanel(wd) {
             <div id="area-options" class="area-options"></div>
           </div>
         </div>
+        ${checklistHtml()}
         <input type="text" id="day-note" class="day-note" maxlength="200" style="display:none" placeholder="What is it?">
         <button type="button" class="link-btn" style="align-self:flex-start" onclick="openDayEditor()">Edit earlier days</button>
       </div>`;
@@ -408,6 +423,8 @@ function onDayTypeChange() {
   const t = document.getElementById('day-type').value;
   const picker = document.getElementById('area-picker'), note = document.getElementById('day-note');
   if (picker) picker.style.display = t === 'field_work' ? '' : 'none';
+  const ck = document.getElementById('day-checklist');
+  if (ck) ck.style.display = t === 'field_work' ? '' : 'none';
   if (note) note.style.display = t === 'other' ? '' : 'none';
 }
 
@@ -422,13 +439,16 @@ async function startWorkdayAction() {
   // a field day needs the cluster the MR is working in (it describes the DAY, never a doctor's or chemist's location)
   if (day_type === 'field_work' && areaPicker.areas.length && !areaPicker.selected.size) return showToast('Select the cluster you are working in today');
 
+  if (day_type === 'field_work' && DAY_CHECKS.some(([k]) => typeof dayCheck[k] !== 'boolean')) return showToast('Answer every item in the checklist (Yes / No)');
+
   showToast('📍 Capturing your location…');
   const loc = await captureGeolocation();
   if (!loc) return showToast("Couldn't get your location — enable GPS and try again");
 
   try {
-    await Api.startWorkday(day_type === 'field_work' ? Array.from(areaPicker.selected) : [], loc.lat, loc.lng, day_type, day_note || null, pickedMood, mood_note || null);
+    await Api.startWorkday(day_type === 'field_work' ? Array.from(areaPicker.selected) : [], loc.lat, loc.lng, day_type, day_note || null, pickedMood, mood_note || null, day_type === 'field_work' ? { ...dayCheck } : null);
     areaPicker.selected = new Set();
+    dayCheck = {};
     pickedMood = null;
     showToast('Day started — have a good day!');
     loadWorkdayPanel();

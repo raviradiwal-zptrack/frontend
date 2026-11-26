@@ -234,8 +234,8 @@ const Api = {
   getClusters() { return this.request('/clusters'); },   // the MR's WORKING clusters (Start Day) — not doctor / chemist localities
   getKnownAreas() { return this.request('/geocode/known'); }, // localities and cities already used on doctors and chemists
   getWorkdayToday() { return this.request('/workday/today'); },
-  startWorkday(cluster_ids, lat, lng, day_type, day_note, mood, mood_note) {
-    return this.request('/workday/start', { method: 'POST', body: JSON.stringify({ cluster_ids, lat, lng, day_type, day_note, mood: mood || null, mood_note: mood_note || null }) });
+  startWorkday(cluster_ids, lat, lng, day_type, day_note, mood, mood_note, checklist) {
+    return this.request('/workday/start', { method: 'POST', body: JSON.stringify({ cluster_ids, lat, lng, day_type, day_note, mood: mood || null, mood_note: mood_note || null, checklist: checklist || undefined }) });
   },
   // my last 8 days, and fixing the type of one of them (date = 'today' or 2026-10-12)
   getRecentWorkdays() { return this.request('/workday/recent'); },
