@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>[TEST] Zivanta Field Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4B1F7A">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>window.ZIVANTA_ENV = "uat"; window.ZIVANTA_API_BASE = "https://zivanta-uat-api.onrender.com/api";</script>
+<script>
+(function () {   // TEST (UAT) copy only: a clear strip on every screen so nobody mistakes it for the live system
+  if (window.ZIVANTA_ENV !== 'uat') return;
+  document.addEventListener('DOMContentLoaded', function () {
+    var s = document.createElement('div');
+    s.textContent = 'TEST VERSION. Not the live system.';
+    s.setAttribute('role', 'status');
+    s.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#b3382c;color:#fff;font:600 12px/1 system-ui,sans-serif;text-align:center;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));pointer-events:none';
+    document.body.appendChild(s);
+  });
+})();
+</script>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
+</head>
+<body>
+<div id="app">
+
+  <div class="slow-banner" id="slow-banner" style="display:none">☕ Waking up the server — the first call of the day can take up to a minute. Please wait…</div>
+  <div class="offline-banner" id="offline-banner">You're offline — some data may be out of date</div>
+  <div class="outbox-bar" id="outbox-bar" style="display:none" onclick="openOutboxSheet()"></div>
+
+  <!-- ===== LOGIN ===== -->
+  <!-- Home / Map / Reports sit at the TOP, under the status bar, clear of the "Powered by" badge at the bottom -->
+  <div class="top-nav" id="main-tabs" style="display:none">
+    <button data-view="list" class="active" onclick="showView('list')"><span class="nav-icon">🏠</span>Home</button>
+    <button data-view="map" onclick="showView('map')"><span class="nav-icon">🗺️</span>Map</button>
+    <button data-view="reports" onclick="showView('reports')"><span class="nav-icon">📊</span>Reports</button>
+  </div>
+
+  <div class="view active" id="view-login">
+    <div class="login-screen">
+      <div class="login-logo">Z</div>
+      <h1>Zivanta Field Tracker</h1>
+      <p>Sign in with the ID your admin gave you</p>
+      <div class="login-error" id="login-error"></div>
+      <form id="login-form">
+        <input type="text" id="login-username" placeholder="User ID" autocomplete="username" required>
+        <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
+        <button type="submit">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== HOME (Start/End Day + today's Doctors/Chemists) ===== -->
+  <div class="view" id="view-list">
+    <div class="topbar">
+      <div>
+        <h1>Zivanta Tracker</h1>
+        <div class="sub" id="welcome-name"></div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="icon-btn avatar-btn" id="avatar-btn" onclick="openProfile()" title="My profile"></button>
+        <button class="icon-btn" onclick="logout()" title="Sign out">⎋</button>
+      </div>
+    </div>
+
+    <div id="workday-panel"></div>
+    <div id="day-editor"></div>
+    <!-- v2.16: the Home has TWO pages you swipe between: 1 = Wall, 2 = Doctor / Chemist Calls (exactly as it was) -->
+    <div class="home-pagenav" id="home-pagenav">
+      <button type="button" class="on" data-page="0" onclick="goHomePage(0)">📌 Wall</button>
+      <button type="button" data-page="1" onclick="goHomePage(1)">Doctor / Chemist Calls</button>
+    </div>
+    <div class="home-pager" id="home-pager">
+    <section class="home-page" id="home-wall"><div id="wall-root"><div class="loading-row">Loading…</div></div></section>
+    <section class="home-page" id="home-calls">
+    <div id="home-cards" class="home-cards"></div>
+
+    <div class="tab-toggle">
+      <button data-tab="doctor" class="active" onclick="setTab('doctor')">Doctors</button>
+      <button data-tab="chemist" onclick="setTab('chemist')">Chemists</button>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="home-search-input" placeholder="Search by name, hospital, speciality…" oninput="onSearchInput(event)">
+    </div>
+    <div class="list-scope-label" id="list-scope-label">Showing today's covered doctors</div>
+
+    <div class="filter-row">
+      <button class="chip" data-key="rating" data-value="5" onclick="setFilter('rating','5')">★★★★★</button>
+      <button class="chip" data-key="rating" data-value="4" onclick="setFilter('rating','4')">★★★★+</button>
+      <button class="chip" data-key="rating" data-value="3" onclick="setFilter('rating','3')">★★★+</button>
+    </div>
+    <div class="filter-row" id="filter-rx-row">
+      <button class="chip" data-key="rx_status" data-value="RX" onclick="setFilter('rx_status','RX')">RX</button>
+      <button class="chip" data-key="rx_status" data-value="NON_RX" onclick="setFilter('rx_status','NON_RX')">Non-RX</button>
+      <button class="chip" data-key="rx_status" data-value="POTENTIAL" onclick="setFilter('rx_status','POTENTIAL')">Potential</button>
+      <button class="chip" data-key="core_status" data-value="CORE" onclick="setFilter('core_status','CORE')">Core</button>
+      <button class="chip" data-key="core_status" data-value="NON_CORE" onclick="setFilter('core_status','NON_CORE')">Non-Core</button>
+    </div>
+
+    <div class="tools-row" id="staff-call-filters" style="display:none">
+      <select id="adm-mr" onchange="setStaffFilter('mr', this.value)" aria-label="MR"><option value="">All MRs</option></select>
+      <select id="adm-when" onchange="setStaffFilter('when', this.value)" aria-label="When"><option value="today">Called today</option><option value="yesterday">Called yesterday</option><option value="7d">Last 7 days</option><option value="month">This month</option><option value="custom">Pick dates…</option></select>
+      <input type="date" id="adm-from" style="display:none" onchange="setStaffFilter('from', this.value)" aria-label="From">
+      <input type="date" id="adm-to" style="display:none" onchange="setStaffFilter('to', this.value)" aria-label="To">
+    </div>
+    <div class="tools-row" id="list-tools">
+      <select id="list-sort" onchange="setListSort(this.value)" aria-label="Sort">
+        <option value="name_asc">Sort: Name A–Z</option><option value="name_desc">Name Z–A</option><option value="rating_desc">Rating, high to low</option>
+        <option value="rx_first">Rx doctors first</option><option value="locality">Locality A–Z</option><option value="newest">Newest added</option><option value="last_call">Last call (newest first)</option>
+      </select>
+      <select id="list-locality" onchange="setListLocality(this.value)" aria-label="Locality"><option value="">All localities</option></select>
+    </div>
+    <div class="list" id="list-items"></div>
+    <button class="action-btn secondary rp-more" id="list-more" style="display:none" onclick="loadList(true)">Load more</button>
+    </section>
+    </div>
+    <button class="fab" onclick="openAdd()">+</button>
+  </div>
+
+  <!-- ===== DETAIL ===== -->
+  <div class="view" id="view-detail">
+    <div id="detail-root"></div>
+  </div>
+
+  <!-- ===== ADD / EDIT ===== -->
+  <div class="view" id="view-edit">
+    <div class="topbar">
+      <button class="icon-btn" onclick="goBack()">←</button>
+      <h1 id="edit-title">Add</h1>
+      <button class="icon-btn" onclick="showView('list')" title="Home">🏠</button>
+    </div>
+    <div class="form-pad" style="padding:16px">
+      <div id="edit-form-fields"></div>
+      <button class="action-btn primary" style="width:100%;padding:13px 0" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+
+  <!-- ===== MY PROFILE ===== -->
+  <div class="view" id="view-profile">
+    <div class="topbar">
+      <button class="icon-btn" onclick="goBack()">←</button>
+      <h1>My Profile</h1>
+      <button class="icon-btn" onclick="showView('list')" title="Home">🏠</button>
+    </div>
+    <div id="profile-body"></div>
+  </div>
+
+  <!-- ===== REPORTS (my past visits) ===== -->
+  <div class="view" id="view-reports">
+    <div class="topbar">
+      <div><h1>My Visits</h1><div class="sub">Your past doctor &amp; chemist visits</div></div>
+      <button class="icon-btn" onclick="showView('list')" title="Home">🏠</button>
+    </div>
+    <div class="seg-tabs" id="rp-tabs">
+      <button class="seg active" data-tab="visits" onclick="setReportTab('visits')">📋 My visits</button>
+      <button class="seg" data-tab="coverage" onclick="setReportTab('coverage')">🎯 Coverage</button>
+    </div>
+    <div id="rp-visits-pane">
+    <div class="filter-row" id="rp-range-chips">
+      <button class="chip active" data-range="today" onclick="setReportRange('today')">Today</button>
+      <button class="chip" data-range="yesterday" onclick="setReportRange('yesterday')">Yesterday</button>
+      <button class="chip" data-range="week" onclick="setReportRange('week')">Last 7 days</button>
+      <button class="chip" data-range="month" onclick="setReportRange('month')">This month</button>
+      <button class="chip" data-range="lastmonth" onclick="setReportRange('lastmonth')">Last month</button>
+      <button class="chip" data-range="custom" onclick="setReportRange('custom')">📅 Pick dates</button>
+    </div>
+    <div class="rp-custom" id="rp-custom" style="display:none">
+      <input type="date" id="rp-from"><span>to</span><input type="date" id="rp-to">
+      <button class="action-btn primary" onclick="applyCustomRange()">Go</button>
+    </div>
+    <div class="tools-row" id="rp-mr-row" style="display:none"><select id="rp-mr" onchange="setReportMr(this.value)" aria-label="MR"><option value="">All MRs</option></select></div>
+    <div class="tools-row">
+      <input type="text" id="rp-q" placeholder="Filter by name, comment, area…" oninput="setReportTools('q', this.value)">
+      <select id="rp-sort" onchange="setReportTools('sort', this.value)" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="name">Name A–Z</option></select>
+    </div>
+    <div class="filter-row" id="rp-type-chips">
+      <button class="chip active" data-type="" onclick="setReportType('')">All</button>
+      <button class="chip" data-type="doctor" onclick="setReportType('doctor')">⚕ Doctors</button>
+      <button class="chip" data-type="chemist" onclick="setReportType('chemist')">💊 Chemists</button>
+    </div>
+    <div class="rp-summary" id="rp-summary"></div>
+    <div id="rp-list"></div>
+    <button class="action-btn secondary rp-more" id="rp-more" style="display:none" onclick="loadReports(false)">Load more</button>
+    </div>
+    <div id="rp-cov-pane" style="display:none">
+      <div class="cov-intro"><div class="cov-scope" id="cov-scope"><button type="button" class="on" data-s="mine" onclick="setCovScope('mine')">My doctors</button><button type="button" data-s="all" onclick="setCovScope('all')">Whole team</button></div></div>
+      <div class="filter-row" id="cov-chips">
+        <button class="chip active" data-f="attention" onclick="setCovFilter('attention')">⚠ Need attention</button>
+        <button class="chip" data-f="all" onclick="setCovFilter('all')">All</button>
+        <button class="chip" data-f="RX" onclick="setCovFilter('RX')">RX</button>
+        <button class="chip" data-f="POTENTIAL" onclick="setCovFilter('POTENTIAL')">Potential</button>
+        <button class="chip" data-f="NON_RX" onclick="setCovFilter('NON_RX')">Non-RX</button>
+        <button class="chip" data-f="mgr_due" id="cov-mgr-chip" onclick="setCovFilter('mgr_due')">🧑‍💼 Manager due</button>
+      </div>
+      <div class="cov-tiles" id="cov-tiles"></div>
+      <div class="cov-bar"><span id="cov-focus"></span>
+        <select id="cov-sort" onchange="setCovSort(this.value)" aria-label="Sort">
+          <option value="priority">Sort: Priority</option>
+          <option value="least">Least visited</option>
+          <option value="most">Most visited</option>
+          <option value="neglected">Neglected (longest wait)</option>
+          <option value="recent">Recently called</option>
+          <option value="manager">Manager call due</option>
+        </select></div>
+      <div id="cov-list"></div>
+      <button class="action-btn secondary rp-more" id="cov-more" style="display:none" onclick="loadMyCoverage(false)">Load more</button>
+    </div>
+  </div>
+
+  <!-- ===== MAP ===== -->
+  <div class="view" id="view-map" style="height:calc(100vh - var(--nav-h));">
+    <div id="map-container">
+      <div class="map-top">
+        <div class="map-search-overlay">
+          <input type="text" id="map-search-input" placeholder="Filter by name, hospital, speciality…">
+          <button class="map-locate-btn" id="map-locate-btn" title="Use my current location">📍</button>
+          <button class="map-locate-btn map-pick-btn" id="map-pick-btn" title="Tap the map to choose a location">🎯</button>
+          <button class="map-locate-btn" onclick="showView('list')" title="Home">🏠</button>
+        </div>
+        <div class="map-chip-row" id="map-chip-row">
+          <button class="map-chip" data-radius="1">1 km</button>
+          <button class="map-chip" data-radius="2">2 km</button>
+          <button class="map-chip active" data-radius="3">3 km</button>
+          <button class="map-chip" data-radius="5">5 km</button>
+          <span class="map-chip-sep"></span>
+          <button class="map-chip status-chip active" data-status="all">All</button>
+          <button class="map-chip status-chip" data-status="rx">🟣 RX</button>
+          <button class="map-chip status-chip" data-status="nonrx">🟠 Non-RX</button>
+          <button class="map-chip status-chip" data-status="potential">🔵 Potential</button>
+          <button class="map-chip status-chip" data-status="chemist">🟢 Chemist</button>
+        </div>
+        <div class="map-hint" id="map-hint" style="display:none">Tap anywhere on the map to set your search location</div>
+        <div class="map-legend" id="map-legend">
+          <span><i style="background:#4B1F7A"></i> RX</span>
+          <span><i style="background:#C98A1E"></i> Non-RX</span>
+          <span><i style="background:#2F6FDB"></i> Potential</span>
+          <span><i style="background:#3FA34D"></i> Chemist</span>
+        </div>
+      </div>
+      <div id="leaflet-map"></div>
+
+      <div class="map-sheet" id="map-sheet">
+        <div class="map-sheet-handle" onclick="ZivMap.toggleSheet()">
+          <div class="map-sheet-grip"></div>
+          <div class="map-sheet-title" id="map-sheet-title">Tap 📍 to find doctors near you</div>
+        </div>
+        <div class="map-sheet-list" id="map-sheet-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BOTTOM NAV ===== -->
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script src="js/api.js"></script>
+<script src="js/map.js"></script>
+<script src="js/app.js"></script>
+<script src="js/keyboard.js"></script>
+</body>
+</html>
