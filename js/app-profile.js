@@ -35,9 +35,30 @@ function renderProfile() {
       <div class="form-field"><label>E-mail</label><input type="email" id="pf-email" maxlength="120" value="${repEsc(u.email || '')}"></div>
       <div class="form-field"><label>Birthday</label><input type="date" id="pf-birthday" max="${istDate(0)}" value="${repEsc(u.birthday || '')}"></div>
       <button class="action-btn primary" id="pf-save" style="width:100%;padding:13px 0" onclick="saveProfile()">Save</button>
+      <div class="rem-box" id="ver-box"><div class="rem-title">ℹ️ App version</div><div class="rem-sub" id="ver-sub">App v${repEsc(window.ZIVANTA_VERSION || '?')}</div><div class="rem-actions"><button type="button" class="action-btn secondary" onclick="refreshApp()">Check for update</button></div></div>
       <div class="rem-box" id="rem-box"><div class="rem-title">🔔 Reminders on this phone</div><div class="rem-sub" id="rem-sub">Checking…</div><div class="rem-actions" id="rem-actions"></div></div>
     </div>`;
   renderReminderBox();
+  showServerVersion();
+}
+
+// Shows the app version, and whether the server is on a newer one (then "Check for update" reloads the latest app).
+async function showServerVersion() {
+  const el = document.getElementById('ver-sub'); if (!el) return;
+  const app = window.ZIVANTA_VERSION || '?';
+  try {
+    const r = await fetch(String(window.ZIVANTA_API_BASE).replace(/\/$/, '') + '/health', { cache: 'no-store' });
+    const h = await r.json();
+    el.textContent = `App v${app} · Server v${h.version || '?'}${h.version && h.version !== app ? ' — an update is available, tap "Check for update"' : ' — up to date'}`;
+  } catch (e) { el.textContent = `App v${app} · couldn't check (offline?)`; }
+}
+async function refreshApp() {
+  showToast('Checking for the latest version…');
+  try {
+    if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r => r.update().then(() => r.unregister()))); }
+    if (window.caches) { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); }
+  } catch (e) { /* reload anyway */ }
+  location.reload();
 }
 
 function applyProfile(me) {
