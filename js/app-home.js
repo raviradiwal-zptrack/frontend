@@ -200,9 +200,10 @@ async function openMonthSheet(go) {
   } else if (!d) days = '<div class="mm-fine">Your days could not be loaded just now.</div>';
   const rows = m ? (m.metrics || []).map(k => {
     const t = (m.targets || {})[k.key], a = ((m.actual || {})[k.key]) || 0;
-    if (!(t > 0)) return `<div class="sh-row"><div class="sh-main"><div class="sh-name">${repEsc(k.label)}</div></div><div>${a}</div></div>`;
+    const allT = k.key === 'rx_conversions' ? `<div style="font-size:12px;color:var(--text-muted)">All-time: ${((m.actual || {}).rx_conv_total) || 0}</div>` : '';
+    if (!(t > 0)) return `<div class="sh-row"><div class="sh-main"><div class="sh-name">${repEsc(k.label)}${allT}</div></div><div>${a}</div></div>`;
     const p = m.pct[k.key], good = p >= m.pace_pct;
-    return `<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between"><b>${repEsc(k.label)}</b><span><b>${a}</b> / ${t} · ${p}%</span></div><div class="sh-bar"><div style="width:${Math.min(100, p)}%;background:${good ? '#2E7D3A' : '#C0392B'}"></div></div></div>`;
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between"><b>${repEsc(k.label)}</b><span><b>${a}</b> / ${t} · ${p}%</span></div>${allT}<div class="sh-bar"><div style="width:${Math.min(100, p)}%;background:${good ? '#2E7D3A' : '#C0392B'}"></div></div></div>`;
   }).join('') : '';
   const has = m && m.overall_pct !== null && m.overall_pct !== undefined;
   const targets = !m ? '' : `<h4 class="mm-h">Targets</h4>` + (has
