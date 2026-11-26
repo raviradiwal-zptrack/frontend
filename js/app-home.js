@@ -614,8 +614,10 @@ async function saveEdit() {
       const existing = await findExisting(type, payload);
       if (existing.length && confirm(similarMessage(type, existing))) { openDetail(type, existing[0].id, { replace: true }); return; }
       const created = isDoctor ? await Api.createDoctor(payload) : await Api.createChemist(payload);
-      showToast('Added — now log your first visit below');
-      openDetail(type, created.id, { replace: true });
+      markFirstCallPending(type, created.id);
+      showToast('Added — now log the first call (required)');
+      try { await openDetail(type, created.id, { replace: true }); } catch (e) { /* the banner on the record still reminds */ }
+      setTimeout(() => { if (state.currentEntity && state.currentEntity.type === type && Number(state.currentEntity.id) === Number(created.id)) openCallSheet(true); }, 350);   // the first call opens by itself
     }
   } catch (err) {
     showToast(err.message === 'offline' ? "You're offline — couldn't save." : (err.message || 'Save failed'));

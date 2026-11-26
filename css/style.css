@@ -386,7 +386,7 @@ a { color: inherit; }
 }
 .comment-author { font-weight: 700; font-size: 13.5px; }
 .comment-time { font-size: 11.5px; color: var(--text-muted); }
-.comment-text { font-size: 14px; line-height: 1.45; }
+.comment-text { font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
 .comment-photo { width: 100%; border-radius: 8px; margin-top: 8px; max-height: 220px; object-fit: cover; }
 
 /* ===== Map view ===== */
@@ -879,3 +879,6 @@ body.cs-open .addcall-fab { display: none; }
 .cs-save { margin-left: auto; border: none; border-radius: 10px; padding: 0 18px; height: 40px; background: #3FA34D; color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
 .cs-save:disabled { background: rgba(255,255,255,0.25); color: rgba(255,255,255,0.8); }
 .cs-body { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 110px); }
+
+.fc-banner { margin: 0 16px 12px; padding: 12px 14px; border-radius: 12px; background: #FFF4D6; border: 1px solid #F0C75E; color: #6B4A00; font-size: 14px; line-height: 1.4; }
+.fc-banner button { display: block; margin-top: 8px; border: none; border-radius: 10px; padding: 10px 16px; background: #4B1F7A; color: #fff; font-weight: 800; font-size: 14px; cursor: pointer; }

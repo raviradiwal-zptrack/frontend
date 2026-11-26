@@ -171,6 +171,7 @@ function renderDetail(e, type) {
         <p style="font-size:11px;color:var(--text-muted);margin-top:4px">An admin needs to review this before it's removed — it's still visible until then.</p>
       </div>
     ` : ''}
+    ${firstCallBannerHtml(type, e.id)}
     <div class="detail-actions">
       ${mapUrl ? `<a class="action-btn primary" href="${mapUrl}" target="_blank">📍 Navigate</a>` : ''}
       <button class="action-btn secondary" onclick="openEdit('${type}', ${e.id})">✏️ Edit</button>

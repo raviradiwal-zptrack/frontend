@@ -17,7 +17,7 @@ function setCallKind(k) {
   callKind = k === 'manager' ? 'manager' : 'visit';
   document.querySelectorAll('#call-kind .ck').forEach(b => b.classList.toggle('active', b.dataset.k === callKind));
   const pick = document.getElementById('mgr-pick'); if (pick) pick.style.display = callKind === 'manager' ? 'block' : 'none';
-  const ttl = document.querySelector('#call-sheet .cs-title'); if (ttl && ttl.firstChild) ttl.firstChild.nodeValue = callKind === 'manager' ? 'Add manager call' : 'Add call';
+  const ttl = document.querySelector('#call-sheet .cs-title'); if (ttl && ttl.firstChild) ttl.firstChild.nodeValue = callKind === 'manager' ? 'Add manager call' : (firstCallMode ? 'First call' : 'Add call');
   if (callKind === 'manager') fillManagerSelect();
 }
 function managerFields() {
@@ -162,6 +162,7 @@ async function postComment() {
     if (pendingSelfie) URL.revokeObjectURL(pendingSelfie.previewUrl);
     pendingSelfie = null;
     retakeSelfie();
+    clearFirstCallPending(type, id);
     loadFeed(type, id);
     loadHomeCards();     // today's plan moves on
     closeCallSheet();
@@ -176,6 +177,7 @@ async function postComment() {
       pendingSelfie = null;
       retakeSelfie();
       btn.textContent = 'Save'; btn.disabled = false;
+      clearFirstCallPending(type, id);   // the call is safely stored on the phone
       closeCallSheet();
       return;
     }

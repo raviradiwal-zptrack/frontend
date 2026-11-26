@@ -592,9 +592,15 @@ async function fillQuickResponses() {
     const b = e.target.closest('.qr-chip'); if (!b) return;
     const input = document.getElementById('comment-input'), t = qr.items[Number(b.dataset.i)];
     if (!input || !t) return;
-    const v = input.value, low = v.toLowerCase(), at = low.indexOf(t.toLowerCase());
-    if (at >= 0) input.value = (v.slice(0, at) + v.slice(at + t.length)).replace(/^[\s.;,]+/, '').replace(/\s*;\s*;/g, ';').replace(/\s{2,}/g, ' ').trim();   // tap again to take it back out
-    else input.value = v.trim() ? v.replace(/[\s;]+$/, '') + '; ' + t : t;
+    // each quick response goes on its own line and ends with a full stop; the cursor then waits on the next line for the MR's own words
+    const line = /[.!?]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
+    const lines = input.value.split('\n'), key = x => x.trim().replace(/[.\s]+$/, '').toLowerCase(), k = lines.findIndex(x => key(x) === key(t));
+    if (k >= 0) { lines.splice(k, 1); input.value = lines.join('\n'); }   // tap again to take it back out
+    else {
+      const base = input.value.replace(/\s+$/, '');
+      input.value = (base ? base + '\n' : '') + line + '\n';
+      input.focus(); try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { /* ignore */ }
+    }
     draw();
   };
   const input = document.getElementById('comment-input'); if (input) input.addEventListener('input', draw);
@@ -616,14 +622,29 @@ function setMeetStatus(k) {
   meetStatus = meetStatus === k ? null : k;
   const row = document.getElementById('meet-row'); if (row) row.innerHTML = meetChipsHtml();
 }
-let callSheetOpen = false;
-function openCallSheet() {
+let callSheetOpen = false, firstCallMode = false;
+// A newly added doctor/chemist must get a first call. Kept on the phone until that call is saved.
+const FC_KEY = 'zv_first_call_pending';
+function fcList() { try { const a = JSON.parse(localStorage.getItem(FC_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function markFirstCallPending(type, id) { try { const a = fcList().filter(x => !(x.type === type && Number(x.id) === Number(id))); a.push({ type, id: Number(id) }); localStorage.setItem(FC_KEY, JSON.stringify(a)); } catch (e) { /* the form still opens */ } }
+function clearFirstCallPending(type, id) { try { localStorage.setItem(FC_KEY, JSON.stringify(fcList().filter(x => !(x.type === type && Number(x.id) === Number(id))))); } catch (e) { /* ignore */ } }
+function isFirstCallPending(type, id) { return fcList().some(x => x.type === type && Number(x.id) === Number(id)); }
+function firstCallBannerHtml(type, id) {
+  return isFirstCallPending(type, id) ? `<div class="fc-banner"><b>⚠ First call not logged yet.</b> A new ${type} must have a first call. <button type="button" onclick="openCallSheet(true)">Log first call</button></div>` : '';
+}
+function tryCloseCallSheet() {
+  const ce = state.currentEntity;
+  if (ce && isFirstCallPending(ce.type, ce.id) && !confirm('This is a new ' + ce.type + ' and the first call is not saved yet.\n\nClose without saving the call?')) return;
+  closeCallSheet();
+}
+function openCallSheet(first) {
   if (!state.currentEntity || document.getElementById('call-sheet')) return;
   meetStatus = null;
   if (!(state.currentEntity.type === 'doctor' && state.currentEntity.rec && ['RX', 'POTENTIAL'].includes(state.currentEntity.rec.rx_status))) callKind = 'visit';
+  firstCallMode = !!first || isFirstCallPending(state.currentEntity.type, state.currentEntity.id);
   const el = document.createElement('div');
   el.id = 'call-sheet'; el.className = 'call-sheet';
-  el.innerHTML = `<div class="cs-head"><button type="button" class="cs-x" aria-label="Close" onclick="closeCallSheet()">✕</button><div class="cs-title">Add call<small>${repEsc(state.currentLabel || '')}</small></div><button type="button" class="cs-save" id="btn-post-comment" onclick="postComment()" disabled style="opacity:0.4">Save</button></div>
+  el.innerHTML = `<div class="cs-head"><button type="button" class="cs-x" aria-label="Close" onclick="tryCloseCallSheet()">✕</button><div class="cs-title">${firstCallMode ? 'First call' : 'Add call'}<small>${repEsc(state.currentLabel || '')}</small></div><button type="button" class="cs-save" id="btn-post-comment" onclick="postComment()" disabled style="opacity:0.4">Save</button></div>
     <div class="cs-body"><div class="comment-composer"><div id="comment-composer-body"></div></div></div>`;
   document.body.appendChild(el);
   document.body.classList.add('cs-open');
