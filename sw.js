@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zivanta-shell-v41';
+const CACHE_NAME = 'zivanta-shell-v42';
 const SHELL_ASSETS = [
   '/',
   '/index.html',

@@ -126,6 +126,7 @@ async function postComment() {
     showToast('Please take a verification selfie first');
     return;
   }
+  if (!meetStatus) { showToast(state.currentEntity && state.currentEntity.type === 'chemist' ? 'Choose: met the chemist, did not meet, or met the staff' : 'Choose: met the doctor, did not meet, or met the assistant'); return; }
   if (callKind === 'manager') {
     const t = await loadTeam(), sel = document.getElementById('mgr-select');
     if (t.managers.length && (!sel || !sel.value)) return showToast('Choose which manager made this call with you');
@@ -157,24 +158,26 @@ async function postComment() {
       ({ lat, lng } = loc);
     }
     btn.textContent = 'Saving…';
-    const saved = await Api.addVisit({ entity_type: type, entity_id: id, comment_text: text || null, photo_url, photo_source, lat, lng, category: 'visit', ...managerFields() });
+    const saved = await Api.addVisit({ entity_type: type, entity_id: id, comment_text: text || null, photo_url, photo_source, lat, lng, category: 'visit', meet_status: meetStatus, ...managerFields() });
     input.value = '';
     if (pendingSelfie) URL.revokeObjectURL(pendingSelfie.previewUrl);
     pendingSelfie = null;
     retakeSelfie();
     loadFeed(type, id);
     loadHomeCards();     // today's plan moves on
+    closeCallSheet();
     showToast((callKind === 'manager' ? 'Manager call logged — ' : 'Visit logged — ') + (photo_url ? 'location & selfie verified' : 'location verified') + locationNote(saved, state.currentLabel));
   } catch (err) {
     if (isNetworkError(err) && lat != null && lng != null && (pendingSelfie || !selfieRequired())) {
       // no signal: keep the call (with its selfie) on the phone; it uploads by itself later
       await saveCallOffline({ label: state.currentLabel || '', blob: pendingSelfie && !pendingSelfie.uploadedUrl ? pendingSelfie.blob : null,
-        payload: { entity_type: type, entity_id: id, comment_text: text || null, photo_url: pendingSelfie ? pendingSelfie.uploadedUrl || null : null, photo_source: pendingSelfie ? pendingSelfie.source : photo_source, lat, lng, category: 'visit', ...managerFields() } });
+        payload: { entity_type: type, entity_id: id, comment_text: text || null, photo_url: pendingSelfie ? pendingSelfie.uploadedUrl || null : null, photo_source: pendingSelfie ? pendingSelfie.source : photo_source, lat, lng, category: 'visit', meet_status: meetStatus, ...managerFields() } });
       input.value = '';
       if (pendingSelfie) URL.revokeObjectURL(pendingSelfie.previewUrl);
       pendingSelfie = null;
       retakeSelfie();
-      btn.textContent = 'Post'; btn.disabled = false;
+      btn.textContent = 'Save call'; btn.disabled = false;
+      closeCallSheet();
       return;
     }
     const msg = uploadProblem(err);

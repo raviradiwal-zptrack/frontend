@@ -172,7 +172,7 @@ function setReportTab(tab) {
   if (tab === 'coverage') loadMyCoverage(true);
 }
 const COV_FOCUS = ['never', 'rx_due', 'pot_due', 'no_mobile', 'rx_no_chemist', 'mgr_due'];
-const COV_TITLES = { never: 'Doctors never called', rx_due: 'RX doctors due for a call', pot_due: 'Potential doctors due for a follow-up', no_mobile: 'Doctors with no mobile number', rx_no_chemist: 'RX doctors with no chemist linked', mgr_due: 'RX doctors due a manager call' };
+const COV_TITLES = { never: 'Doctors never called', rx_due: 'RX doctors due for a call', pot_due: 'Potential doctors due for a follow-up', no_mobile: 'Doctors with no mobile number', rx_no_chemist: 'RX doctors with no chemist linked', mgr_due: 'RX / Potential doctors due a manager call' };
 // "My doctors" = the ones I added or have called. "Whole team" = every doctor: any MR may call any doctor, and a call by anyone counts.
 function setCovScope(s) {
   covState.scope = s === 'all' ? 'all' : 'mine';

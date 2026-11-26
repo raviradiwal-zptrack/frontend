@@ -543,7 +543,7 @@ function renderCommentComposerBody() {
   const blocked = callBlocker();
   if (blocked) { box.innerHTML = callBlockerHtml(blocked); pendingSelfie = null; return; }
   const needed = selfieRequired();
-  const _ce = state.currentEntity, canMgr = !!(_ce && _ce.type === 'doctor' && _ce.rec && _ce.rec.rx_status === 'RX');   // manager calls are for RX doctors only
+  const _ce = state.currentEntity, canMgr = !!(_ce && _ce.type === 'doctor' && _ce.rec && ['RX', 'POTENTIAL'].includes(_ce.rec.rx_status));   // manager calls are for RX and Potential doctors only
   if (!canMgr) callKind = 'visit';
   box.innerHTML = `
     <div class="call-kind" id="call-kind" role="tablist" style="display:${canMgr ? 'flex' : 'none'}">
@@ -551,13 +551,15 @@ function renderCommentComposerBody() {
       <button type="button" class="ck${callKind === 'manager' ? ' active' : ''}" data-k="manager" onclick="setCallKind('manager')">🧑‍💼 Manager call</button>
     </div>
     <div id="mgr-pick" class="mgr-pick" style="display:${callKind === 'manager' ? 'block' : 'none'}"><label class="field-label" for="mgr-select">Manager with you</label><select id="mgr-select"><option value="">Loading…</option></select></div>
+    <div class="field-label" style="margin-top:4px">${_ce && _ce.type === 'chemist' ? 'Did you meet the chemist?' : 'Did you meet the doctor?'} *</div>
+    <div class="meet-row" id="meet-row">${meetChipsHtml()}</div>
     <div id="selfie-capture-area">${selfieButtonHtml()}</div>
     <div id="selfie-status" style="font-size:12px;margin-top:6px"></div>
     <label class="field-label" for="comment-input">Comment</label>
     <div class="qr-row" id="qr-row" aria-label="Quick responses"></div>
     <textarea id="comment-input"></textarea>
     <div class="composer-actions">
-      <button class="btn-post" id="btn-post-comment" onclick="postComment()" ${needed ? 'disabled style="opacity:0.4"' : ''}>${callKind === 'manager' ? 'Post manager call' : 'Post'}</button>
+      <button class="btn-post" id="btn-post-comment" onclick="postComment()" ${needed ? 'disabled style="opacity:0.4"' : ''}>${callKind === 'manager' ? 'Save manager call' : 'Save call'}</button>
     </div>
   `;
   pendingSelfie = null;
@@ -566,23 +568,30 @@ function renderCommentComposerBody() {
 }
 
 
-// ----- quick responses: one-tap phrases for the comment (the Admin sets the list in the portal: Users > Settings) -----
-const QR_KEY = 'zv_quick_responses';
-const QR_DEFAULT = ['Prescriptions on-going', 'Less patient flow', 'Ok. Let’s see', 'Need manager call', 'No requirement. Activity full', 'Stock is full', 'Standard company products only', 'Discuss activity with manager', 'Keep follow-up'];
-let qrItems = null;
-function qrSaved() { try { const a = JSON.parse(localStorage.getItem(QR_KEY) || 'null'); return Array.isArray(a) && a.length ? a : null; } catch (e) { return null; } }
+// ----- quick responses: one-tap phrases for the comment (the Admin controls the list, how many show at first, and On/Off: Portal > Users > Settings) -----
+const QR_KEY = 'zv_quick_responses2';
+const QR_DEFAULT = { enabled: true, show_first: 4, items: ['Prescriptions on-going', 'Less patient flow', 'Ok. Let’s see', 'Need manager call', 'No requirement. Activity full', 'Stock is full', 'Standard company products only', 'Discuss activity with manager', 'Keep follow-up'] };
+let qr = null, qrOpen = false;
+function qrSaved() { try { const a = JSON.parse(localStorage.getItem(QR_KEY) || 'null'); return a && Array.isArray(a.items) ? a : null; } catch (e) { return null; } }
 async function fillQuickResponses() {
   const row = document.getElementById('qr-row');
   if (!row) return;
-  if (!qrItems) qrItems = qrSaved() || QR_DEFAULT;
+  if (!qr) qr = qrSaved() || QR_DEFAULT;
+  qrOpen = false;
   const draw = () => {
     const input = document.getElementById('comment-input'), cur = input ? input.value.toLowerCase() : '';
-    row.innerHTML = qrItems.map((t, i) => `<button type="button" class="qr-chip${cur.includes(t.toLowerCase()) ? ' on' : ''}" data-i="${i}">${repEsc(t)}</button>`).join('');
+    row.style.display = qr.enabled && qr.items.length ? '' : 'none';
+    // the first few, plus anything already picked; "More" shows the rest
+    const shown = qr.items.map((t, i) => ({ t, i, on: cur.includes(t.toLowerCase()) })).filter((x, k) => qrOpen || k < qr.show_first || x.on);
+    const hidden = qr.items.length - shown.length;
+    row.innerHTML = shown.map(x => `<button type="button" class="qr-chip${x.on ? ' on' : ''}" data-i="${x.i}">${repEsc(x.t)}</button>`).join('')
+      + (hidden > 0 ? `<button type="button" class="qr-more" data-more="1">More (${hidden}) ▾</button>` : (qrOpen && qr.items.length > qr.show_first ? '<button type="button" class="qr-more" data-more="1">Fewer ▴</button>' : ''));
   };
   draw();
   row.onclick = (e) => {
+    const m = e.target.closest('.qr-more'); if (m) { qrOpen = !qrOpen; draw(); return; }
     const b = e.target.closest('.qr-chip'); if (!b) return;
-    const input = document.getElementById('comment-input'), t = qrItems[Number(b.dataset.i)];
+    const input = document.getElementById('comment-input'), t = qr.items[Number(b.dataset.i)];
     if (!input || !t) return;
     const v = input.value, low = v.toLowerCase(), at = low.indexOf(t.toLowerCase());
     if (at >= 0) input.value = (v.slice(0, at) + v.slice(at + t.length)).replace(/^[\s.;,]+/, '').replace(/\s*;\s*;/g, ';').replace(/\s{2,}/g, ' ').trim();   // tap again to take it back out
@@ -590,8 +599,45 @@ async function fillQuickResponses() {
     draw();
   };
   const input = document.getElementById('comment-input'); if (input) input.addEventListener('input', draw);
-  try {                                                              // the latest list from the Admin (kept on the phone for offline use)
+  try {                                                              // the latest settings from the Admin (kept on the phone for offline use)
     const r = await Api.getQuickResponses();
-    if (r && Array.isArray(r.items) && r.items.length) { qrItems = r.items; try { localStorage.setItem(QR_KEY, JSON.stringify(r.items)); } catch (e) { /* kept for this visit only */ } draw(); }
+    if (r && Array.isArray(r.items)) { qr = { enabled: r.enabled !== false, show_first: r.show_first || 4, items: r.items }; try { localStorage.setItem(QR_KEY, JSON.stringify(qr)); } catch (e) { /* kept for this visit only */ } draw(); }
   } catch (e) { /* offline: the saved list stays */ }
 }
+
+
+// ===== The "Add call" screen: a full-screen form (visit or manager call, who was met, quick responses, comment, selfie) =====
+let meetStatus = null;
+function meetChipsHtml() {
+  const ce = state.currentEntity, who = ce && ce.type === 'chemist' ? ['chemist', 'staff'] : ['doctor', 'assistant'];
+  const opts = [['met', `✔ Met ${who[0]}`], ['not_met', `✖ Did not meet ${who[0]}`], ['assistant', `👥 Met ${who[1]}`]];
+  return opts.map(([k, t]) => `<button type="button" class="meet-chip ${k}${meetStatus === k ? ' on' : ''}" data-m="${k}" onclick="setMeetStatus('${k}')">${t}</button>`).join('');
+}
+function setMeetStatus(k) {
+  meetStatus = meetStatus === k ? null : k;
+  const row = document.getElementById('meet-row'); if (row) row.innerHTML = meetChipsHtml();
+}
+let callSheetOpen = false;
+function openCallSheet() {
+  if (!state.currentEntity || document.getElementById('call-sheet')) return;
+  meetStatus = null;
+  if (!(state.currentEntity.type === 'doctor' && state.currentEntity.rec && ['RX', 'POTENTIAL'].includes(state.currentEntity.rec.rx_status))) callKind = 'visit';
+  const el = document.createElement('div');
+  el.id = 'call-sheet'; el.className = 'call-sheet';
+  el.innerHTML = `<div class="cs-head"><button type="button" class="cs-x" aria-label="Close" onclick="closeCallSheet()">✕</button><div class="cs-title">Add call<small>${repEsc(state.currentLabel || '')}</small></div></div>
+    <div class="cs-body"><div class="comment-composer"><div id="comment-composer-body"></div></div></div>`;
+  document.body.appendChild(el);
+  document.body.classList.add('cs-open');
+  callSheetOpen = true;
+  try { history.pushState(Object.assign({}, history.state || {}, { sheet: 1 }), '', location.hash); } catch (e) { /* the ✕ button still closes it */ }
+  renderCommentComposerBody();
+}
+function closeCallSheet(fromBack) {
+  const el = document.getElementById('call-sheet');
+  if (el) el.remove();
+  document.body.classList.remove('cs-open');
+  if (!callSheetOpen) return;
+  callSheetOpen = false;
+  if (!fromBack) { try { if (history.state && history.state.sheet) history.back(); } catch (e) { /* ignore */ } }   // take our own history step back off
+}
+window.addEventListener('popstate', () => { if (callSheetOpen) closeCallSheet(true); });   // the phone's Back button closes the form first

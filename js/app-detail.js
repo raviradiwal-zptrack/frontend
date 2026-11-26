@@ -171,6 +171,7 @@ function renderDetail(e, type) {
         <p style="font-size:11px;color:var(--text-muted);margin-top:4px">An admin needs to review this before it's removed — it's still visible until then.</p>
       </div>
     ` : ''}
+    <div class="addcall-bar"><button type="button" class="addcall-btn" onclick="openCallSheet()">➕ Add call</button></div>
     <div class="detail-actions">
       ${mapUrl ? `<a class="action-btn primary" href="${mapUrl}" target="_blank">📍 Navigate</a>` : ''}
       <button class="action-btn secondary" onclick="openEdit('${type}', ${e.id})">✏️ Edit</button>
@@ -184,9 +185,7 @@ function renderDetail(e, type) {
     ${reminderBlockHtml()}
     ${accordions}
     ${accordion('acc-comments', 'Comments', `
-      <div class="comment-composer">
-        <div id="comment-composer-body"></div>
-      </div>
+      <div class="comment-composer"><button type="button" class="action-btn primary" style="width:100%" onclick="openCallSheet()">➕ Add call</button></div>
       <div class="tools-row" style="padding:0 0 8px">
         <input type="text" id="feed-q" placeholder="Filter comments…" oninput="setFeedFilter('q', this.value)">
         <select id="feed-show" onchange="setFeedFilter('show', this.value)" aria-label="Show">
@@ -499,6 +498,7 @@ function feedCardHtml(v) {
   const rxClass = v.doctor_rx_status_at_time === 'NON_RX' ? 'rx-target' : (v.doctor_rx_status_at_time === 'POTENTIAL' ? 'rx-potential' : (v.doctor_rx_status_at_time === 'RX' ? 'rx-prescribing' : ''));
   const categoryBadge = v.category === 'gift' ? '<span class="gift-badge">Gift</span>'
     : v.category === 'samples' ? '<span class="samples-badge">Samples</span>' : '';
+  const meetBadge = v.meet_status ? `<span class="meet-badge ${v.meet_status}">${({ met: '✔ Met', not_met: '✖ Not met', assistant: '👥 Met assistant' })[v.meet_status] || ''}</span>` : '';
   const mgrBadge = v.is_manager_call ? `<span class="mgr-badge">🧑‍💼 Manager call${v.manager_name ? ' with ' + repEsc(v.manager_name) : ''}</span>` : '';
   const lines = v.category === 'samples' ? sampleLines(v) : [];
   const text = lines.length ? lines.map(s => `${repEsc(s.product)} × ${s.quantity}`).join(', ') : (v.comment_text ? repEsc(v.comment_text) : '');
@@ -508,7 +508,7 @@ function feedCardHtml(v) {
       <span class="comment-author">${repEsc(v.author_name)}</span>
       <span class="comment-time">${timeAgo(v.visited_at)}</span>
     </div>
-    ${categoryBadge || mgrBadge ? `<div style="margin-bottom:5px">${categoryBadge}${mgrBadge}</div>` : ''}
+    ${categoryBadge || mgrBadge || meetBadge ? `<div style="margin-bottom:5px">${categoryBadge}${mgrBadge}${meetBadge}</div>` : ''}
     ${text ? `<div class="comment-text">${text}</div>` : ''}
     ${v.photo_url ? `<a href="${repEsc(v.photo_url)}" target="_blank" rel="noopener"><img class="comment-photo" loading="lazy" src="${repEsc(thumbUrl(v.photo_url, 640))}" alt="${v.category === 'gift' ? 'Gift photo' : 'Verification selfie'}"></a>` : ''}
     <div class="badge-row" style="margin-top:7px">
