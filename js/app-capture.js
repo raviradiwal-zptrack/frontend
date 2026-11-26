@@ -571,7 +571,7 @@ function renderCommentComposerBody() {
 // ----- quick responses: one-tap phrases for the comment (the Admin controls the list, how many show at first, and On/Off: Portal > Users > Settings) -----
 const QR_KEY = 'zv_quick_responses2';
 const QR_DEFAULT = { enabled: true, show_first: 4, items: ['Prescriptions on-going', 'Less patient flow', 'Ok. Let’s see', 'Need manager call', 'No requirement. Activity full', 'Stock is full', 'Standard company products only', 'Discuss activity with manager', 'Keep follow-up'] };
-let qr = null, qrOpen = false;
+let qr = null, qrOpen = false, qrCaretPending = false;
 function qrSaved() { try { const a = JSON.parse(localStorage.getItem(QR_KEY) || 'null'); return a && Array.isArray(a.items) ? a : null; } catch (e) { return null; } }
 async function fillQuickResponses() {
   const row = document.getElementById('qr-row');
@@ -595,6 +595,7 @@ async function fillQuickResponses() {
     const b = e.target.closest('.qr-chip'); if (!b) return;
     const input = document.getElementById('comment-input'), t = qr.items[Number(b.dataset.i)];
     if (!input || !t) return;
+    const wasTyping = document.activeElement === input;
     // each quick response goes on its own line and ends with a full stop; the cursor then waits on the next line for the MR's own words
     const line = /[.!?]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
     const lines = input.value.split('\n'), key = x => x.trim().replace(/[.\s]+$/, '').toLowerCase(), k = lines.findIndex(x => key(x) === key(t));
@@ -602,11 +603,16 @@ async function fillQuickResponses() {
     else {
       const base = input.value.replace(/\s+$/, '');
       input.value = (base ? base + '\n' : '') + line + '\n';
-      try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { /* ignore */ }   // the caret waits on the next line, but the keyboard stays closed until the MR taps the box
+      qrCaretPending = true;     // the caret is moved to the new line only when the MR later taps the box; touching the box from code can raise the keyboard on some phones
+      if (!wasTyping) { try { input.blur(); } catch (e) { /* ignore */ } }
     }
     draw();
   };
-  const input = document.getElementById('comment-input'); if (input) input.addEventListener('input', draw);
+  const input = document.getElementById('comment-input');
+  if (input) {
+    input.addEventListener('input', draw);
+    input.addEventListener('focus', () => { if (!qrCaretPending) return; qrCaretPending = false; setTimeout(() => { try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { /* ignore */ } }, 0); });
+  }
   try {                                                              // the latest settings from the Admin (kept on the phone for offline use)
     const r = await Api.getQuickResponses();
     if (r && Array.isArray(r.items)) { qr = { enabled: r.enabled !== false, show_first: r.show_first || 4, items: r.items }; try { localStorage.setItem(QR_KEY, JSON.stringify(qr)); } catch (e) { /* kept for this visit only */ } draw(); }
